@@ -1,4 +1,4 @@
-/** Fixed top bar: logo, anchor nav, level pill + theme toggle. */
+/** Fixed top bar: logo, anchor nav, role switcher, level pill + theme toggle. */
 import { useGameState } from '../context/GameStateContext.jsx';
 
 const MOON_ICON = (
@@ -21,26 +21,68 @@ const SUN_ICON = (
   </svg>
 );
 
-export default function Hud() {
+export default function Hud({ currentView = 'public', onSelectView = () => {} }) {
   const { level, progress, theme, toggleTheme } = useGameState();
 
   return (
     <header className="hud-bar" role="banner">
       <div className="hud-inner">
         <div className="hud-left">
-          <a href="#hero" className="hud-logo" aria-label="Tri-Star Fitness Home">
+          <button
+            type="button"
+            className="hud-logo-btn"
+            onClick={() => onSelectView('public')}
+            aria-label="Tri-Star Fitness Home"
+          >
             TRI-STAR<span className="star">★</span>
-          </a>
-          <nav className="hud-nav" aria-label="Main Navigation">
-            <a href="#offer" className="hud-nav-link">What we offer</a>
-            <a href="#equipment" className="hud-nav-link">3D Gear</a>
-            <a href="#cardiac" className="hud-nav-link">Cardiac health</a>
-            <a href="#plans" className="hud-nav-link">Plans</a>
-            <a href="#contact" className="hud-nav-link">Contact</a>
-          </nav>
+          </button>
+
+          {currentView === 'public' ? (
+            <nav className="hud-nav" aria-label="Main Navigation">
+              <a href="#offer" className="hud-nav-link">What we offer</a>
+              <a href="#equipment" className="hud-nav-link">3D Gear</a>
+              <a href="#cardiac" className="hud-nav-link">Cardiac health</a>
+              <a href="#plans" className="hud-nav-link">Plans</a>
+              <a href="#contact" className="hud-nav-link">Contact</a>
+            </nav>
+          ) : (
+            <div className="hud-portal-indicator">
+              <span className="portal-crumb">
+                {currentView === 'admin' ? '🛡️ Management Portal' : '🏋️ Athlete / Member Portal'}
+              </span>
+            </div>
+          )}
         </div>
 
         <div className="hud-right">
+          {/* Mode Switcher: Website / Member / Admin */}
+          <div className="hud-view-switcher" role="group" aria-label="Portal switcher">
+            <button
+              type="button"
+              className={`hud-view-btn ${currentView === 'public' ? 'active' : ''}`}
+              onClick={() => onSelectView('public')}
+              title="Public Gym Website"
+            >
+              🌐 Site
+            </button>
+            <button
+              type="button"
+              className={`hud-view-btn ${currentView === 'client' ? 'active' : ''}`}
+              onClick={() => onSelectView('client')}
+              title="Member Workout & Attendance Portal"
+            >
+              🏋️ Member
+            </button>
+            <button
+              type="button"
+              className={`hud-view-btn ${currentView === 'admin' ? 'active' : ''}`}
+              onClick={() => onSelectView('admin')}
+              title="Gym Admin & Management Console"
+            >
+              🛡️ Admin
+            </button>
+          </div>
+
           <div className="hud-level-pill" aria-label="Player Level and XP">
             <span className="hud-level-badge">Level {level}</span>
             <div className="hud-xp-container">
