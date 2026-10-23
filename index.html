@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <title>TRI-STAR ★ FITNESS | Premium Gym in Indore</title>
+    <meta name="description"
+        content="TRI-STAR ★ FITNESS is Indore’s premier gym for strength, HYROX preparation, functional training and body transformations. Rated 5.0 on Google." />
+    <meta property="og:title" content="TRI-STAR ★ FITNESS | Premium Gym in Indore" />
+    <meta property="og:description"
+        content="Indore’s premium gym on Sapna Sangeeta Road. Strength training, HYROX, personal coaching, and active community. Start your streak today." />
+    <meta property="og:type" content="website" />
+    <meta name="twitter:card" content="summary_large_image" />
+
+    <!-- Apply the persisted/OS theme before React mounts to avoid a light-flash in dark mode -->
+    <script>
+        try {
+            var t = localStorage.getItem('tristar_theme') || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+            document.documentElement.setAttribute('data-theme', t);
+        } catch (e) { }
+    </script>
+
+    <!-- Google Fonts: Big Shoulders Display 900 & Archivo 400/600 -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+        href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;600;700&family=Big+Shoulders+Display:wght@900&display=swap"
+        rel="stylesheet" />
+
+    <link rel="icon"
+        href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='80' font-size='80'>★</text></svg>" />
+</head>
+
+<body>
+    <!-- React mounts the entire app here (see src/main.jsx) -->
+    <div id="root"></div>
+    <script type="module" src="/src/main.jsx"></script>
+</body>
+
+</html>
