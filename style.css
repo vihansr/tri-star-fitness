@@ -3853,4 +3853,195 @@ h4,
     white-space: nowrap;
 }
 
+/* =========================================================================
+   AUTHENTICATION MODAL & HUD USER PILL
+   ========================================================================= */
+.hud-user-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    padding: 0.25rem 0.65rem;
+    background-color: var(--card);
+    border: 1px solid var(--ink);
+    border-radius: var(--radius-pill);
+    box-shadow: 2px 2px 0 var(--ink);
+    font-size: 0.8rem;
+    font-weight: 700;
+}
+
+.hud-user-avatar {
+    font-size: 0.95rem;
+}
+
+.hud-user-name {
+    color: var(--ink);
+    max-width: 90px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.hud-user-tag {
+    font-size: 0.65rem;
+    font-weight: 800;
+    padding: 0.1rem 0.35rem;
+    background-color: var(--bg);
+    border: 1px solid var(--line);
+    border-radius: 4px;
+    color: var(--muted);
+}
+
+.hud-logout-btn {
+    background: transparent;
+    border: none;
+    font-size: 0.72rem;
+    color: var(--plate-red);
+    font-weight: 800;
+    cursor: pointer;
+    padding: 0.15rem 0.35rem;
+    border-radius: 4px;
+    transition: background-color 0.15s ease;
+}
+
+.hud-logout-btn:hover {
+    background-color: rgba(220, 38, 38, 0.08);
+}
+
+.hud-auth-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.35rem 0.85rem;
+    background-color: var(--card);
+    border: var(--border-width) solid var(--ink);
+    border-radius: var(--radius-pill);
+    font-size: 0.82rem;
+    font-weight: 800;
+    color: var(--ink);
+    cursor: pointer;
+    box-shadow: 2px 2px 0 var(--ink);
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.hud-auth-btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 3px 3px 0 var(--plate-yellow);
+}
+
+/* Auth Modal Backdrop & Card */
+.auth-modal-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 999;
+    background-color: rgba(0, 0, 0, 0.65);
+    backdrop-filter: blur(4px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem;
+    animation: fadeIn 0.15s ease;
+}
+
+.auth-modal-card {
+    background-color: var(--card);
+    border: 1.5px solid var(--ink);
+    border-radius: var(--radius-md);
+    width: 100%;
+    max-width: 480px;
+    box-shadow: 6px 6px 0 var(--ink);
+    display: flex;
+    flex-direction: column;
+    max-height: 92vh;
+    overflow-y: auto;
+    padding: 1.75rem;
+    gap: 1.25rem;
+    animation: slideUp 0.2s var(--spring-ease);
+}
+
+.auth-modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    border-bottom: 1px solid var(--line);
+    padding-bottom: 0.85rem;
+}
+
+.auth-role-tabs {
+    display: flex;
+    gap: 0.5rem;
+    background-color: var(--bg);
+    padding: 0.3rem;
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--line);
+}
+
+.auth-role-btn {
+    flex: 1;
+    padding: 0.5rem 0.75rem;
+    font-size: 0.82rem;
+    font-weight: 700;
+    border: none;
+    background: transparent;
+    border-radius: var(--radius-sm);
+    color: var(--muted);
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.auth-role-btn.active {
+    background-color: var(--card);
+    color: var(--ink);
+    border: 1px solid var(--ink);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+}
+
+.auth-nav-tabs {
+    display: flex;
+    border-bottom: 1px solid var(--line);
+}
+
+.auth-nav-btn {
+    flex: 1;
+    text-align: center;
+    padding: 0.6rem;
+    font-size: 0.9rem;
+    font-weight: 700;
+    color: var(--muted);
+    background: transparent;
+    border: none;
+    border-bottom: 2px solid transparent;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.auth-nav-btn.active {
+    color: var(--ink);
+    border-bottom-color: var(--ink);
+}
+
+.auth-error-banner {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.65rem 0.85rem;
+    background-color: rgba(220, 38, 38, 0.08);
+    border: 1px solid var(--plate-red);
+    border-radius: var(--radius-sm);
+    font-size: 0.82rem;
+    color: var(--plate-red);
+    font-weight: 600;
+}
+
+.auth-form-body {
+    display: flex;
+    flex-direction: column;
+    gap: 0.95rem;
+}
+
+.auth-quick-fill-box {
+    border-top: 1px solid var(--line);
+    padding-top: 1rem;
+}
+
+
 
