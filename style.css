@@ -225,6 +225,10 @@ h4,
     }
 }
 
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
 .btn-outline {
     background-color: var(--card);
     color: var(--ink);
@@ -413,6 +417,80 @@ h4,
 
 .theme-toggle-btn:active {
     transform: translate(1px, 1px);
+}
+
+.hud-pin-btn.active {
+    background-color: var(--ink);
+    color: var(--bg);
+}
+
+.hud-nearest-wrap {
+    position: relative;
+}
+
+.hud-nearest-popover {
+    position: absolute;
+    top: calc(100% + 10px);
+    right: 0;
+    min-width: 240px;
+    background-color: var(--card);
+    border: var(--border-width) solid var(--ink);
+    border-radius: var(--radius-md);
+    box-shadow: 4px 4px 0 var(--ink);
+    padding: 1rem 1.1rem;
+    z-index: 200;
+    animation: pop-bounce 0.2s var(--spring-ease, cubic-bezier(0.2, 0.9, 0.3, 1.4));
+}
+
+.hud-nearest-title {
+    font-family: var(--font-heading);
+    font-size: 0.88rem;
+    font-weight: 900;
+    color: var(--ink);
+    margin-bottom: 0.55rem;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+}
+
+.hud-nearest-body {
+    font-size: 0.84rem;
+    color: var(--ink);
+    line-height: 1.5;
+    display: flex;
+    align-items: center;
+    gap: 0.45rem;
+}
+
+.hud-nearest-spinner {
+    display: inline-block;
+    width: 12px;
+    height: 12px;
+    flex-shrink: 0;
+    border: 2px solid var(--plate-red);
+    border-top-color: transparent;
+    border-radius: 50%;
+    animation: spin 0.75s linear infinite;
+}
+
+.hud-nearest-action-btn {
+    display: inline-block;
+    font-family: var(--font-heading);
+    font-size: 0.78rem;
+    font-weight: 900;
+    color: var(--ink);
+    background-color: var(--bg);
+    border: var(--border-width) solid var(--ink);
+    border-radius: var(--radius-sm);
+    box-shadow: 2px 2px 0 var(--ink);
+    padding: 0.3rem 0.7rem;
+    cursor: pointer;
+    text-decoration: none;
+    transition: transform 0.1s ease, box-shadow 0.1s ease;
+}
+
+.hud-nearest-action-btn:hover {
+    transform: translate(-1px, -1px);
+    box-shadow: 3px 3px 0 var(--ink);
 }
 
 /* Floating XP Notification */

@@ -238,3 +238,36 @@ export function getIndoreTime(now = new Date()) {
     minute,
   };
 }
+
+/**
+ * Haversine distance between two lat/lng points in km.
+ * @param {number} lat1 @param {number} lng1 @param {number} lat2 @param {number} lng2
+ * @returns {number}
+ */
+export function haversineKm(lat1, lng1, lat2, lng2) {
+  const R = 6371;
+  const dLat = ((lat2 - lat1) * Math.PI) / 180;
+  const dLng = ((lng2 - lng1) * Math.PI) / 180;
+  const a =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos((lat1 * Math.PI) / 180) *
+      Math.cos((lat2 * Math.PI) / 180) *
+      Math.sin(dLng / 2) ** 2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
+
+/**
+ * Returns the nearest gym from a list with its distance in km.
+ * @param {number} userLat @param {number} userLng
+ * @param {Array<{lat:number,lng:number}>} gyms
+ * @returns {{ gym: object, distanceKm: number }}
+ */
+export function getNearestGym(userLat, userLng, gyms) {
+  let nearest = null;
+  let minDist = Infinity;
+  for (const gym of gyms) {
+    const d = haversineKm(userLat, userLng, gym.lat, gym.lng);
+    if (d < minDist) { minDist = d; nearest = gym; }
+  }
+  return { gym: nearest, distanceKm: minDist };
+}

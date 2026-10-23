@@ -1,6 +1,9 @@
-/** Fixed top bar: logo, anchor nav, role switcher, level pill, auth status + theme toggle. */
+/** Fixed top bar: logo, anchor nav, role switcher, level pill, auth status, theme toggle + nearest branch. */
+import { useState, useRef, useEffect } from 'react';
 import { useGameState } from '../context/GameStateContext.jsx';
 import { useAuth } from '../context/AuthContext.jsx';
+import { useNearestGym } from '../hooks/useNearestGym.js';
+import { GYMS } from '../lib/brand.js';
 
 const MOON_ICON = (
   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -22,9 +25,39 @@ const SUN_ICON = (
   </svg>
 );
 
+const PIN_ICON = (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <path d="M21 10c0 7-9 13-9 13S3 17 3 10a9 9 0 0 1 18 0z"></path>
+    <circle cx="12" cy="10" r="3"></circle>
+  </svg>
+);
+
 export default function Hud({ currentView = 'public', onSelectView = () => {} }) {
-  const { level, progress, theme, toggleTheme } = useGameState();
+  const { theme, toggleTheme } = useGameState();
   const { user, isAuthenticated, isAdmin, logout, openAuthModal } = useAuth();
+  const { status: geoStatus, result: geoResult, errorMsg: geoError, locate, reset } = useNearestGym();
+  const [popOpen, setPopOpen] = useState(false);
+  const wrapRef = useRef(null);
+
+  // Close popover on outside click
+  useEffect(() => {
+    if (!popOpen) return;
+    const handler = (e) => {
+      if (wrapRef.current && !wrapRef.current.contains(e.target)) {
+        setPopOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [popOpen]);
+
+  const handlePinClick = () => {
+    setPopOpen((prev) => !prev);
+    // Auto-trigger location fetch on first open if still idle
+    if (!popOpen && geoStatus === 'idle') locate();
+  };
+
+  const handleReset = () => { reset(); };
 
   const handleMemberClick = () => {
     if (isAuthenticated) {
@@ -136,23 +169,71 @@ export default function Hud({ currentView = 'public', onSelectView = () => {} })
             </button>
           )}
 
-          <div className="hud-level-pill" aria-label="Player Level and XP">
-            <span className="hud-level-badge">Level {level}</span>
-            <div className="hud-xp-container">
-              <div
-                className="hud-xp-track"
-                role="progressbar"
-                aria-valuenow={progress.currentInLevel}
-                aria-valuemin={0}
-                aria-valuemax={50}
-                aria-label="XP progress to next level"
-              >
-                <div className="hud-xp-fill" style={{ width: `${progress.progressPercent}%` }}></div>
+          {/* Nearest Branch Pin Button + Popover */}
+          <div className="hud-nearest-wrap" ref={wrapRef}>
+            <button
+              type="button"
+              className={`theme-toggle-btn hud-pin-btn ${popOpen ? 'active' : ''}`}
+              aria-label="Find nearest Tri-Star branch"
+              title="Find nearest branch"
+              onClick={handlePinClick}
+            >
+              {PIN_ICON}
+            </button>
+
+            {popOpen && (
+              <div className="hud-nearest-popover" role="dialog" aria-label="Nearest branch">
+                <p className="hud-nearest-title">📍 Nearest branch</p>
+
+                {geoStatus === 'loading' && (
+                  <p className="hud-nearest-body">
+                    <span className="hud-nearest-spinner" />
+                    Locating you…
+                  </p>
+                )}
+
+                {geoStatus === 'success' && geoResult && (
+                  <>
+                    <p className="hud-nearest-body">
+                      <strong style={{ color: 'var(--plate-red)' }}>{geoResult.gym.name}</strong>
+                      {' — '}{geoResult.distanceKm.toFixed(1)} km away<br />
+                      <span style={{ color: 'var(--muted)', fontSize: '0.78rem' }}>{geoResult.gym.address}</span>
+                    </p>
+                    <div style={{ display: 'flex', gap: '0.4rem', marginTop: '0.5rem', flexWrap: 'wrap' }}>
+                      <a
+                        href={geoResult.gym.mapsUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="hud-nearest-action-btn"
+                      >
+                        Open in Maps
+                      </a>
+                      <button type="button" className="hud-nearest-action-btn" onClick={handleReset}>
+                        Reset
+                      </button>
+                    </div>
+                  </>
+                )}
+
+                {geoStatus === 'error' && (
+                  <>
+                    <p className="hud-nearest-body" style={{ color: 'var(--muted)' }}>{geoError}</p>
+                    {GYMS.map((g) => (
+                      <a
+                        key={g.id}
+                        href={g.mapsUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="hud-nearest-action-btn"
+                        style={{ display: 'block', marginBottom: '0.3rem' }}
+                      >
+                        📍 {g.name}
+                      </a>
+                    ))}
+                  </>
+                )}
               </div>
-              <span className="hud-xp-text">
-                {progress.currentInLevel} / {progress.nextLevelXP} XP
-              </span>
-            </div>
+            )}
           </div>
 
           <button
