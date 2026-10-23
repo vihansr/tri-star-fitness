@@ -1,5 +1,6 @@
-/** Fixed top bar: logo, anchor nav, role switcher, level pill + theme toggle. */
+/** Fixed top bar: logo, anchor nav, role switcher, level pill, auth status + theme toggle. */
 import { useGameState } from '../context/GameStateContext.jsx';
+import { useAuth } from '../context/AuthContext.jsx';
 
 const MOON_ICON = (
   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -23,6 +24,23 @@ const SUN_ICON = (
 
 export default function Hud({ currentView = 'public', onSelectView = () => {} }) {
   const { level, progress, theme, toggleTheme } = useGameState();
+  const { user, isAuthenticated, isAdmin, logout, openAuthModal } = useAuth();
+
+  const handleMemberClick = () => {
+    if (isAuthenticated) {
+      onSelectView('client');
+    } else {
+      openAuthModal('login', 'user');
+    }
+  };
+
+  const handleAdminClick = () => {
+    if (isAuthenticated && isAdmin) {
+      onSelectView('admin');
+    } else {
+      openAuthModal('login', 'admin');
+    }
+  };
 
   return (
     <header className="hud-bar" role="banner">
@@ -68,7 +86,7 @@ export default function Hud({ currentView = 'public', onSelectView = () => {} })
             <button
               type="button"
               className={`hud-view-btn ${currentView === 'client' ? 'active' : ''}`}
-              onClick={() => onSelectView('client')}
+              onClick={handleMemberClick}
               title="Member Workout & Attendance Portal"
             >
               🏋️ Member
@@ -76,12 +94,47 @@ export default function Hud({ currentView = 'public', onSelectView = () => {} })
             <button
               type="button"
               className={`hud-view-btn ${currentView === 'admin' ? 'active' : ''}`}
-              onClick={() => onSelectView('admin')}
+              onClick={handleAdminClick}
               title="Gym Admin & Management Console"
             >
               🛡️ Admin
             </button>
           </div>
+
+          {/* User Auth Pill / Login Button */}
+          {isAuthenticated ? (
+            <div className="hud-user-pill" title={`Logged in as ${user?.name} (${user?.role})`}>
+              <span className="hud-user-avatar">
+                {user?.role === 'admin' ? '🛡️' : '👤'}
+              </span>
+              <span className="hud-user-name">
+                {user?.name?.split(' ')[0] || 'User'}
+              </span>
+              <span className="hud-user-tag">
+                {user?.branch === 'manik_bagh' ? 'MB' : user?.branch === 'combined' ? 'ALL' : 'SS'}
+              </span>
+              <button
+                type="button"
+                className="hud-logout-btn"
+                onClick={() => {
+                  logout();
+                  onSelectView('public');
+                }}
+                title="Sign out of account"
+              >
+                Sign Out
+              </button>
+            </div>
+          ) : (
+            <button
+              type="button"
+              className="hud-auth-btn"
+              onClick={() => openAuthModal('login', 'user')}
+              title="Sign In or Create Account"
+            >
+              Sign In
+            </button>
+          )}
 
           <div className="hud-level-pill" aria-label="Player Level and XP">
             <span className="hud-level-badge">Level {level}</span>
