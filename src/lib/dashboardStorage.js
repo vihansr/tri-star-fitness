@@ -11,8 +11,8 @@ const STORAGE_KEYS = {
   MEMBER_PRS: 'tristar_member_prs',
   ATTENDANCE: 'tristar_attendance_logs',
   EQUIPMENT_STATUS: 'tristar_equipment_status',
-  EXPENSES: 'tristar_expenses_list_v1',
-  REVENUE_STREAMS: 'tristar_revenue_streams_v1',
+  EXPENSES: 'tristar_expenses_list_v2',
+  REVENUE_STREAMS: 'tristar_revenue_streams_v2',
 };
 
 // Realistic seed members with comprehensive personal, medical, and package end tracking
@@ -204,78 +204,79 @@ const DEFAULT_MEMBERS = [
   },
 ];
 
-// Default Operating Expenses for Tri-Star Fitness Indore
+// Default Optimized Lean Operating Expenses for Tri-Star Fitness Indore (Monthly: ~₹1,69,500)
 const DEFAULT_EXPENSES = [
   {
     id: 'exp-1',
     category: 'Trainer & Coach Payroll',
-    name: 'Coach Mohit, Pooja, Rahul & Floor Supervisors',
-    amount: 115000,
+    name: 'Coaches Base Payroll & Floor Supervisors',
+    amount: 72000,
     date: 'Oct 2026',
     type: 'recurring',
-    notes: 'Head coach + 2 functional specialists + floor support staff',
+    notes: 'Base salary structure (variable bonuses funded by direct PT splits)',
   },
   {
     id: 'exp-2',
     category: 'Facility Rent & Lease',
-    name: 'Sapna Sangeeta Road Prime Commercial Facility',
-    amount: 85000,
+    name: 'Sapna Sangeeta Prime Commercial Arena',
+    amount: 52000,
     date: 'Oct 2026',
     type: 'recurring',
-    notes: '4,500 sq.ft turf, free weight arena, and locker facility',
+    notes: 'Long-term negotiated commercial floor lease rate',
   },
   {
     id: 'exp-3',
-    category: 'Commercial Utilities & AC',
-    name: 'MPPKVVCL Power, Diesel Generator Backup & Water',
-    amount: 32000,
+    category: 'Commercial Utilities & Rooftop Solar',
+    name: 'Solar-Hybrid Subsidized Electricity & Power Backup',
+    amount: 16500,
     date: 'Oct 2026',
     type: 'recurring',
-    notes: 'Central AC system & uninterrupted power generator maintenance',
+    notes: 'Rooftop solar offset keeps commercial power bills exceptionally low',
   },
   {
     id: 'exp-4',
     category: 'Equipment Maintenance',
-    name: 'Eleiko Barbells, Needle Bearings & Turf Sled Tuning',
-    amount: 14500,
+    name: 'Preventive Bearing Lubrication & Cable Tuning',
+    amount: 7500,
     date: 'Oct 2026',
     type: 'maintenance',
-    notes: 'Bi-monthly needle bearing lubrication, cable tensioning, and sled skid repairs',
+    notes: 'In-house quarterly preventive schedule reduces heavy replacement costs',
   },
   {
     id: 'exp-5',
     category: 'Nutrition Inventory Restock',
-    name: 'Whey Isolate Canisters & Protein Bar Crates',
-    amount: 28000,
+    name: 'Direct Wholesale Whey Isolate & Protein Bar Stock',
+    amount: 12000,
     date: 'Oct 2026',
     type: 'inventory',
-    notes: 'Direct bulk import from certified laboratory distributor',
+    notes: 'Manufacturer wholesale pricing yields 80%+ retail gross margins',
   },
   {
     id: 'exp-6',
     category: 'Sanitization & Facility Upkeep',
-    name: 'Medical-Grade Turf Disinfection & Towel Service',
-    amount: 11000,
+    name: 'Automated Turf Disinfection & Sanitizer Refills',
+    amount: 5500,
     date: 'Oct 2026',
     type: 'recurring',
-    notes: 'Daily chalk dust vacuuming, antimicrobial turf wash, and bathroom upkeep',
+    notes: 'Bulk hospital-grade disinfectant concentrate and towel service',
   },
   {
     id: 'exp-7',
     category: 'Software & Marketing',
-    name: 'Biometric Cloud Sync, WhatsApp API & Local Ads',
-    amount: 8500,
+    name: 'Cloud Biometrics, Member WhatsApp Funnel & Local SEO',
+    amount: 4000,
     date: 'Oct 2026',
     type: 'recurring',
-    notes: 'Indore local Instagram geo-ads and membership SMS gateway',
+    notes: 'Organic community referrals and automated WhatsApp CRM gateway',
   },
 ];
 
-// Default Additional Revenue Streams
+// Maximized Revenue Streams (Monthly: ~₹4,30,000+ additional inflow)
 const DEFAULT_REVENUE_STREAMS = [
-  { id: 'rev-pt', name: '1-on-1 Personal Training Packages', amount: 84000, month: 'Oct 2026' },
-  { id: 'rev-store', name: 'Tri-Star Fuel & Whey Nutrition Store', amount: 46500, month: 'Oct 2026' },
-  { id: 'rev-guest', name: 'Drop-in Day Passes & Guest Passes', amount: 16500, month: 'Oct 2026' },
+  { id: 'rev-pt', name: '1-on-1 Premium Personal Coaching Packages', amount: 195000, month: 'Oct 2026' },
+  { id: 'rev-store', name: 'Tri-Star Fuel & Whey Nutrition Store Sales', amount: 112000, month: 'Oct 2026' },
+  { id: 'rev-corp', name: 'Corporate Athlete Wellness Contracts', amount: 75000, month: 'Oct 2026' },
+  { id: 'rev-guest', name: 'Weekend HYROX Camps & Drop-In Passes', amount: 48000, month: 'Oct 2026' },
 ];
 
 const DEFAULT_WORKOUTS = [
