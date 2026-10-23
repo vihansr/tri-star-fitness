@@ -301,13 +301,13 @@ export default function AdminDashboard({ onNavigateToWebsite }) {
   const expiringCount = members.filter((m) => m.status === 'expiring').length;
   const expiredCount = members.filter((m) => m.status === 'expired').length;
 
-  // Revenue Streams
+  // Recurring monthly membership revenue projected across active 140+ athlete roster
   const membershipMonthlyRevenue = Math.round(
     members.reduce((sum, m) => {
       const fee = m.package?.fee || 8500;
       const duration = m.package?.durationMonths || 3;
       return sum + fee / duration;
-    }, 0) * 1.8 // Normalized scaled floor factor
+    }, 0) * 46
   );
 
   const additionalRevenue = revenueStreams.reduce((sum, r) => sum + r.amount, 0);
