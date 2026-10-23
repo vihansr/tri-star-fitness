@@ -1,0 +1,8 @@
+{
+    "name": "TRI-STAR ★ FITNESS | Premium Gym in Indore",
+    "description": "Gamified, animation-heavy one-page website for TRI-STAR ★ FITNESS, Indore's premium fitness destination.",
+    "requestFramePermissions": [],
+    "majorCapabilities": [
+        "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+    ]
+}
