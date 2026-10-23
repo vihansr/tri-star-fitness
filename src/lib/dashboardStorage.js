@@ -1,21 +1,31 @@
 /**
  * Storage & seed manager for Tri-Star Local Client and Admin Dashboards.
- * Persists in localStorage so data survives page refreshes and offline testing.
+ * Multi-center support:
+ * - Sapna Sangeeta (Flagship Center)
+ * - Manik Bagh (South Indore Center)
+ * - Combined (All Centers Aggregated)
  */
+
+export const BRANCHES = [
+  { id: 'combined', name: 'Combined (All Centers)', shortName: 'Combined', icon: '🌐' },
+  { id: 'sapna_sangeeta', name: 'Sapna Sangeeta Flagship', shortName: 'Sapna Sangeeta', icon: '📍' },
+  { id: 'manik_bagh', name: 'Manik Bagh Center', shortName: 'Manik Bagh', icon: '📍' },
+];
 
 const STORAGE_KEYS = {
   ADMIN_AUTH: 'tristar_admin_auth',
   ACTIVE_MEMBER_ID: 'tristar_active_member_id',
-  MEMBERS: 'tristar_members_list_v2', // v2 with comprehensive personal & package details
+  MEMBERS: 'tristar_members_list_v3',
   WORKOUT_LOGS: 'tristar_workout_logs',
   MEMBER_PRS: 'tristar_member_prs',
   ATTENDANCE: 'tristar_attendance_logs',
   EQUIPMENT_STATUS: 'tristar_equipment_status',
-  EXPENSES: 'tristar_expenses_list_v2',
-  REVENUE_STREAMS: 'tristar_revenue_streams_v2',
+  EXPENSES: 'tristar_expenses_list_v3',
+  REVENUE_STREAMS: 'tristar_revenue_streams_v3',
+  ACTIVE_BRANCH: 'tristar_active_branch_v1',
 };
 
-// Realistic seed members with comprehensive personal, medical, and package end tracking
+// Seed members distributed across Sapna Sangeeta, Manik Bagh, and Combined All-Access
 const DEFAULT_MEMBERS = [
   {
     id: 'TS-001',
@@ -25,6 +35,8 @@ const DEFAULT_MEMBERS = [
     age: 27,
     gender: 'Male',
     bloodGroup: 'B+',
+    branch: 'sapna_sangeeta',
+    branchLabel: 'Sapna Sangeeta',
     address: 'Vijay Nagar, Indore',
     emergencyContact: {
       name: 'Ramesh Patel (Father)',
@@ -62,6 +74,8 @@ const DEFAULT_MEMBERS = [
     age: 24,
     gender: 'Female',
     bloodGroup: 'O+',
+    branch: 'combined',
+    branchLabel: 'All-Access (Combined)',
     address: 'Old Palasia, Indore',
     emergencyContact: {
       name: 'Sunita Joshi (Mother)',
@@ -89,7 +103,7 @@ const DEFAULT_MEMBERS = [
       includesCoaching: true,
       lockerAllocated: 'Locker #03 (VIP)',
     },
-    adminNotes: 'Elite annual membership. VIP locker access, free nutrition bar perks each month.',
+    adminNotes: 'Elite dual-center access pass. Works out in Sapna Sangeeta weekdays, Manik Bagh weekends.',
   },
   {
     id: 'TS-003',
@@ -99,6 +113,8 @@ const DEFAULT_MEMBERS = [
     age: 32,
     gender: 'Male',
     bloodGroup: 'A+',
+    branch: 'sapna_sangeeta',
+    branchLabel: 'Sapna Sangeeta',
     address: 'Sapna Sangeeta Main Road, Indore',
     emergencyContact: {
       name: 'Anjali Singh (Spouse)',
@@ -110,7 +126,7 @@ const DEFAULT_MEMBERS = [
     plan: 'Quarterly Pro',
     planAccent: 'var(--plate-red)',
     joinDate: '2026-07-28',
-    expiryDate: '2026-10-28', // Expiring in < 5 days!
+    expiryDate: '2026-10-28',
     status: 'expiring',
     streakDays: 9,
     avatar: 'V',
@@ -136,7 +152,9 @@ const DEFAULT_MEMBERS = [
     age: 29,
     gender: 'Female',
     bloodGroup: 'B-',
-    address: 'Bhawarkua, Indore',
+    branch: 'manik_bagh',
+    branchLabel: 'Manik Bagh',
+    address: 'Manik Bagh Road, Indore',
     emergencyContact: {
       name: 'Kavita Sharma (Sister)',
       phone: '+91 98930 44551',
@@ -147,7 +165,7 @@ const DEFAULT_MEMBERS = [
     plan: 'Monthly Starter',
     planAccent: 'var(--plate-blue)',
     joinDate: '2026-09-12',
-    expiryDate: '2026-10-12', // Expired 11 days ago
+    expiryDate: '2026-10-12',
     status: 'expired',
     streakDays: 0,
     avatar: 'P',
@@ -163,7 +181,7 @@ const DEFAULT_MEMBERS = [
       includesCoaching: false,
       lockerAllocated: 'General Day Locker',
     },
-    adminNotes: 'Membership lapsed. Called on Oct 16—traveling out of town, will renew upon return.',
+    adminNotes: 'Manik Bagh regular. Traveled out of town, expected to renew on return.',
   },
   {
     id: 'TS-005',
@@ -173,6 +191,8 @@ const DEFAULT_MEMBERS = [
     age: 35,
     gender: 'Male',
     bloodGroup: 'O-',
+    branch: 'combined',
+    branchLabel: 'All-Access (Combined)',
     address: 'Geeta Bhawan, Indore',
     emergencyContact: {
       name: 'Deepak Malviya (Brother)',
@@ -200,83 +220,232 @@ const DEFAULT_MEMBERS = [
       includesCoaching: true,
       lockerAllocated: 'Locker #07',
     },
-    adminNotes: 'Club veteran and top streak holder (41 days consecutive). Eligible for free gym apparel kit.',
+    adminNotes: 'Combined multi-club access holder. Top attendance streak.',
+  },
+  {
+    id: 'TS-006',
+    name: 'Tanmay Verma',
+    phone: '+91 98270 55112',
+    email: 'tanmay.v@gmail.com',
+    age: 26,
+    gender: 'Male',
+    bloodGroup: 'A+',
+    branch: 'manik_bagh',
+    branchLabel: 'Manik Bagh',
+    address: 'Khatiwala Tank, Manik Bagh, Indore',
+    emergencyContact: {
+      name: 'Suresh Verma (Father)',
+      phone: '+91 98270 99002',
+      relation: 'Father',
+    },
+    healthNotes: 'Fit for progressive overload. Training for HYROX relay division.',
+    assignedCoach: 'Coach Pooja (Functional Lead)',
+    plan: 'Annual Elite',
+    planAccent: 'var(--plate-yellow)',
+    joinDate: '2026-04-15',
+    expiryDate: '2027-04-15',
+    status: 'active',
+    streakDays: 22,
+    avatar: 'T',
+    package: {
+      tier: 'Annual Elite',
+      durationMonths: 12,
+      startDate: '2026-04-15',
+      endDate: '2027-04-15',
+      fee: 28000,
+      paymentStatus: 'Paid',
+      paymentMethod: 'UPI',
+      invoiceNumber: 'INV-IND-9021',
+      includesCoaching: true,
+      lockerAllocated: 'Locker #11 (Manik Bagh)',
+    },
+    adminNotes: 'Manik Bagh prime lifter. Focus on dumbbell snatches and SkiErg pacing.',
+  },
+  {
+    id: 'TS-007',
+    name: 'Pooja Choudhary',
+    phone: '+91 97520 66334',
+    email: 'pooja.c@gmail.com',
+    age: 28,
+    gender: 'Female',
+    bloodGroup: 'O+',
+    branch: 'manik_bagh',
+    branchLabel: 'Manik Bagh',
+    address: 'Sindhi Colony, Manik Bagh, Indore',
+    emergencyContact: {
+      name: 'Anil Choudhary (Spouse)',
+      phone: '+91 97520 11998',
+      relation: 'Spouse',
+    },
+    healthNotes: 'Past wrist strain. Uses wrist wraps for heavy bench presses.',
+    assignedCoach: 'Coach Rahul (Strength Specialist)',
+    plan: 'Quarterly Pro',
+    planAccent: 'var(--plate-red)',
+    joinDate: '2026-08-01',
+    expiryDate: '2026-11-01',
+    status: 'active',
+    streakDays: 16,
+    avatar: 'P',
+    package: {
+      tier: 'Quarterly Pro',
+      durationMonths: 3,
+      startDate: '2026-08-01',
+      endDate: '2026-11-01',
+      fee: 8500,
+      paymentStatus: 'Paid',
+      paymentMethod: 'UPI',
+      invoiceNumber: 'INV-IND-8742',
+      includesCoaching: true,
+      lockerAllocated: 'Locker #05 (Manik Bagh)',
+    },
+    adminNotes: 'Consistent evening trainee at Manik Bagh arena.',
   },
 ];
 
-// Default Optimized Lean Operating Expenses for Tri-Star Fitness Indore (Monthly: ~₹1,69,500)
+// Operating Expenses categorized by Branch
 const DEFAULT_EXPENSES = [
+  // Sapna Sangeeta Branch
   {
-    id: 'exp-1',
+    id: 'exp-ss-1',
+    branch: 'sapna_sangeeta',
+    branchLabel: 'Sapna Sangeeta',
     category: 'Trainer & Coach Payroll',
-    name: 'Coaches Base Payroll & Floor Supervisors',
-    amount: 72000,
+    name: 'Head Coach Mohit & Sapna Sangeeta Floor Trainers',
+    amount: 44000,
     date: 'Oct 2026',
     type: 'recurring',
-    notes: 'Base salary structure (variable bonuses funded by direct PT splits)',
+    notes: 'Head coach + floor strength specialists',
   },
   {
-    id: 'exp-2',
+    id: 'exp-ss-2',
+    branch: 'sapna_sangeeta',
+    branchLabel: 'Sapna Sangeeta',
     category: 'Facility Rent & Lease',
     name: 'Sapna Sangeeta Prime Commercial Arena',
-    amount: 52000,
+    amount: 32000,
     date: 'Oct 2026',
     type: 'recurring',
-    notes: 'Long-term negotiated commercial floor lease rate',
+    notes: 'Main flagship arena floor lease',
   },
   {
-    id: 'exp-3',
-    category: 'Commercial Utilities & Rooftop Solar',
-    name: 'Solar-Hybrid Subsidized Electricity & Power Backup',
-    amount: 16500,
+    id: 'exp-ss-3',
+    branch: 'sapna_sangeeta',
+    branchLabel: 'Sapna Sangeeta',
+    category: 'Commercial Utilities & Power',
+    name: 'MPPKVVCL Power & Solar Hybrid Grid',
+    amount: 9500,
     date: 'Oct 2026',
     type: 'recurring',
-    notes: 'Rooftop solar offset keeps commercial power bills exceptionally low',
+    notes: 'Solar subsidized central AC operations',
   },
   {
-    id: 'exp-4',
+    id: 'exp-ss-4',
+    branch: 'sapna_sangeeta',
+    branchLabel: 'Sapna Sangeeta',
     category: 'Equipment Maintenance',
-    name: 'Preventive Bearing Lubrication & Cable Tuning',
-    amount: 7500,
+    name: 'Eleiko Barbells & Turf Sled Bearing Servicing',
+    amount: 4500,
     date: 'Oct 2026',
     type: 'maintenance',
-    notes: 'In-house quarterly preventive schedule reduces heavy replacement costs',
+    notes: 'Flagship turf maintenance',
+  },
+
+  // Manik Bagh Branch
+  {
+    id: 'exp-mb-1',
+    branch: 'manik_bagh',
+    branchLabel: 'Manik Bagh',
+    category: 'Trainer & Coach Payroll',
+    name: 'Coach Pooja, Rahul & Manik Bagh Supervisors',
+    amount: 32000,
+    date: 'Oct 2026',
+    type: 'recurring',
+    notes: 'Manik Bagh functional coaching staff',
   },
   {
-    id: 'exp-5',
+    id: 'exp-mb-2',
+    branch: 'manik_bagh',
+    branchLabel: 'Manik Bagh',
+    category: 'Facility Rent & Lease',
+    name: 'Manik Bagh High-Street Commercial Space',
+    amount: 24000,
+    date: 'Oct 2026',
+    type: 'recurring',
+    notes: 'Manik Bagh facility lease',
+  },
+  {
+    id: 'exp-mb-3',
+    branch: 'manik_bagh',
+    branchLabel: 'Manik Bagh',
+    category: 'Commercial Utilities & Power',
+    name: 'Manik Bagh Commercial Electricity & AC',
+    amount: 7500,
+    date: 'Oct 2026',
+    type: 'recurring',
+    notes: 'Power backup and inverter servicing',
+  },
+  {
+    id: 'exp-mb-4',
+    branch: 'manik_bagh',
+    branchLabel: 'Manik Bagh',
+    category: 'Equipment Maintenance',
+    name: 'Dumbbell Rack & Cable Pulley Tuning',
+    amount: 3500,
+    date: 'Oct 2026',
+    type: 'maintenance',
+    notes: 'Manik Bagh cable tower tuning',
+  },
+
+  // Combined Operations (HQ / Shared)
+  {
+    id: 'exp-hq-1',
+    branch: 'combined',
+    branchLabel: 'Combined (HQ / Shared)',
     category: 'Nutrition Inventory Restock',
-    name: 'Direct Wholesale Whey Isolate & Protein Bar Stock',
-    amount: 12000,
+    name: 'Bulk Factory Direct Whey & Fuel Bars (Both Centers)',
+    amount: 14000,
     date: 'Oct 2026',
     type: 'inventory',
-    notes: 'Manufacturer wholesale pricing yields 80%+ retail gross margins',
+    notes: 'Centrally warehoused inventory distributed to both locations',
   },
   {
-    id: 'exp-6',
+    id: 'exp-hq-2',
+    branch: 'combined',
+    branchLabel: 'Combined (HQ / Shared)',
     category: 'Sanitization & Facility Upkeep',
-    name: 'Automated Turf Disinfection & Sanitizer Refills',
+    name: 'Hospital-Grade Concentrate & Towels (Both Centers)',
     amount: 5500,
     date: 'Oct 2026',
     type: 'recurring',
-    notes: 'Bulk hospital-grade disinfectant concentrate and towel service',
+    notes: 'Shared cleaning protocols',
   },
   {
-    id: 'exp-7',
+    id: 'exp-hq-3',
+    branch: 'combined',
+    branchLabel: 'Combined (HQ / Shared)',
     category: 'Software & Marketing',
-    name: 'Cloud Biometrics, Member WhatsApp Funnel & Local SEO',
+    name: 'Multi-Branch Biometrics, WhatsApp CRM & Ads',
     amount: 4000,
     date: 'Oct 2026',
     type: 'recurring',
-    notes: 'Organic community referrals and automated WhatsApp CRM gateway',
+    notes: 'Unified membership tracking software for all locations',
   },
 ];
 
-// Maximized Revenue Streams (Monthly: ~₹4,30,000+ additional inflow)
+// Revenue Streams categorized by Branch
 const DEFAULT_REVENUE_STREAMS = [
-  { id: 'rev-pt', name: '1-on-1 Premium Personal Coaching Packages', amount: 195000, month: 'Oct 2026' },
-  { id: 'rev-store', name: 'Tri-Star Fuel & Whey Nutrition Store Sales', amount: 112000, month: 'Oct 2026' },
-  { id: 'rev-corp', name: 'Corporate Athlete Wellness Contracts', amount: 75000, month: 'Oct 2026' },
-  { id: 'rev-guest', name: 'Weekend HYROX Camps & Drop-In Passes', amount: 48000, month: 'Oct 2026' },
+  // Sapna Sangeeta Inflows
+  { id: 'rev-ss-pt', branch: 'sapna_sangeeta', name: '1-on-1 PT Coaching (Sapna Sangeeta)', amount: 115000, month: 'Oct 2026' },
+  { id: 'rev-ss-store', branch: 'sapna_sangeeta', name: 'Whey & Nutrition Store (Sapna Sangeeta)', amount: 68000, month: 'Oct 2026' },
+  { id: 'rev-ss-camp', branch: 'sapna_sangeeta', name: 'Weekend HYROX Arena Drop-ins', amount: 32000, month: 'Oct 2026' },
+
+  // Manik Bagh Inflows
+  { id: 'rev-mb-pt', branch: 'manik_bagh', name: '1-on-1 PT Coaching (Manik Bagh)', amount: 80000, month: 'Oct 2026' },
+  { id: 'rev-mb-store', branch: 'manik_bagh', name: 'Fuel & Nutrition Kiosk (Manik Bagh)', amount: 44000, month: 'Oct 2026' },
+  { id: 'rev-mb-drop', branch: 'manik_bagh', name: 'South Indore Day Passes & Trials', amount: 16000, month: 'Oct 2026' },
+
+  // Combined Pass / Corporate Contracts
+  { id: 'rev-corp', branch: 'combined', name: 'Corporate Multi-Club All-Access Contracts', amount: 75000, month: 'Oct 2026' },
 ];
 
 const DEFAULT_WORKOUTS = [
@@ -320,11 +489,13 @@ const DEFAULT_PRS = {
 };
 
 const DEFAULT_EQUIPMENT = [
-  { id: 'eq-1', name: 'Eleiko Olympic Barbell 20kg (x4)', status: 'Optimal', accent: 'var(--plate-green)' },
-  { id: 'eq-2', name: 'Competition Calibrated Bumpers (1000kg)', status: 'Optimal', accent: 'var(--plate-green)' },
-  { id: 'eq-3', name: 'Concept2 SkiErg Station #1', status: 'Optimal', accent: 'var(--plate-green)' },
-  { id: 'eq-4', name: 'Heavy Turf Sleds & Harnesses', status: 'Servicing Scheduled', accent: 'var(--plate-yellow)' },
-  { id: 'eq-5', name: 'Cable Crossover Stack', status: 'Cable Re-tensioned', accent: 'var(--plate-blue)' },
+  { id: 'eq-1', name: 'Eleiko Olympic Barbell 20kg (Sapna Sangeeta)', branch: 'sapna_sangeeta', status: 'Optimal', accent: 'var(--plate-green)' },
+  { id: 'eq-2', name: 'Competition Calibrated Bumpers 1000kg (Sapna Sangeeta)', branch: 'sapna_sangeeta', status: 'Optimal', accent: 'var(--plate-green)' },
+  { id: 'eq-3', name: 'Concept2 SkiErg Station #1 (Sapna Sangeeta)', branch: 'sapna_sangeeta', status: 'Optimal', accent: 'var(--plate-green)' },
+  { id: 'eq-4', name: 'Turf Sleds & Harnesses (Sapna Sangeeta)', branch: 'sapna_sangeeta', status: 'Servicing Scheduled', accent: 'var(--plate-yellow)' },
+  { id: 'eq-5', name: 'Olympic Barbells & Bumper Set (Manik Bagh)', branch: 'manik_bagh', status: 'Optimal', accent: 'var(--plate-green)' },
+  { id: 'eq-6', name: 'Cable Crossover & Pulley Tower (Manik Bagh)', branch: 'manik_bagh', status: 'Optimal', accent: 'var(--plate-green)' },
+  { id: 'eq-7', name: 'Concept2 Rower & SkiErg Station (Manik Bagh)', branch: 'manik_bagh', status: 'Optimal', accent: 'var(--plate-green)' },
 ];
 
 /**
@@ -390,6 +561,8 @@ export function getStoredMembers() {
       const meta = getPackageExpiryMeta(expiry);
       return {
         ...m,
+        branch: m.branch || 'sapna_sangeeta',
+        branchLabel: m.branchLabel || (m.branch === 'manik_bagh' ? 'Manik Bagh' : m.branch === 'combined' ? 'Combined (All-Access)' : 'Sapna Sangeeta'),
         expiryDate: expiry,
         status: meta.status,
         package: m.package || {
@@ -428,6 +601,19 @@ export function setActiveMemberId(id) {
     localStorage.setItem(STORAGE_KEYS.ACTIVE_MEMBER_ID, id);
   } catch (err) {
     console.error('Failed to set active member id:', err);
+  }
+}
+
+// Branch Selection Management
+export function getActiveBranch() {
+  return localStorage.getItem(STORAGE_KEYS.ACTIVE_BRANCH) || 'combined';
+}
+
+export function setActiveBranch(branchId) {
+  try {
+    localStorage.setItem(STORAGE_KEYS.ACTIVE_BRANCH, branchId);
+  } catch (err) {
+    console.error('Failed to set active branch:', err);
   }
 }
 
@@ -523,9 +709,11 @@ export function getAttendanceLogs() {
     if (!raw) {
       const today = new Date().toLocaleDateString('en-IN', { month: 'short', day: 'numeric' });
       const initial = [
-        { id: 'att-1', memberName: 'Arjun Patel', plan: 'Quarterly Pro', time: `${today}, 06:15 AM` },
-        { id: 'att-2', memberName: 'Sneha Joshi', plan: 'Annual Elite', time: `${today}, 06:45 AM` },
-        { id: 'att-3', memberName: 'Rohit Malviya', plan: 'Annual Elite', time: `${today}, 07:10 AM` },
+        { id: 'att-1', memberName: 'Arjun Patel', branch: 'Sapna Sangeeta', plan: 'Quarterly Pro', time: `${today}, 06:15 AM` },
+        { id: 'att-2', memberName: 'Sneha Joshi', branch: 'Sapna Sangeeta', plan: 'Annual Elite', time: `${today}, 06:45 AM` },
+        { id: 'att-3', memberName: 'Tanmay Verma', branch: 'Manik Bagh', plan: 'Annual Elite', time: `${today}, 07:05 AM` },
+        { id: 'att-4', memberName: 'Rohit Malviya', branch: 'Sapna Sangeeta', plan: 'Annual Elite', time: `${today}, 07:20 AM` },
+        { id: 'att-5', memberName: 'Pooja Choudhary', branch: 'Manik Bagh', plan: 'Quarterly Pro', time: `${today}, 07:45 AM` },
       ];
       localStorage.setItem(STORAGE_KEYS.ATTENDANCE, JSON.stringify(initial));
       return initial;
@@ -536,17 +724,18 @@ export function getAttendanceLogs() {
   }
 }
 
-export function recordCheckIn(memberName, plan) {
+export function recordCheckIn(memberName, plan, branch = 'Sapna Sangeeta') {
   const logs = getAttendanceLogs();
   const time = new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
   const today = new Date().toLocaleDateString('en-IN', { month: 'short', day: 'numeric' });
   const newEntry = {
     id: `att-${Date.now()}`,
     memberName,
+    branch,
     plan,
     time: `${today}, ${time}`,
   };
-  const updated = [newEntry, ...logs.slice(0, 19)];
+  const updated = [newEntry, ...logs.slice(0, 24)];
   try {
     localStorage.setItem(STORAGE_KEYS.ATTENDANCE, JSON.stringify(updated));
   } catch {
