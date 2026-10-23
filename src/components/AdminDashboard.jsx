@@ -1,11 +1,11 @@
 /**
- * Admin Dashboard component.
- * Features:
+ * Tri-Star Admin / Owner Management Dashboard.
+ * Includes:
  * - Local PIN passcode gate (default: 1234)
- * - Member management (view, search, add member, extend membership, delete)
- * - Live attendance check-in feed
- * - Equipment maintenance tracker
- * - Gym KPIs (Active members, revenue, check-in count)
+ * - Member Personal Details tracking (Age, Gender, Blood group, Emergency contact, Medical notes, Assigned coach)
+ * - Active Plan & Package End Details tracking (Start date, End date, Days remaining countdown, Payment status)
+ * - Detailed Member Dossier Modal (View & Track Profile, Renew package, Edit notes)
+ * - Live attendance feed & Equipment maintenance tracker
  */
 import { useState } from 'react';
 import {
@@ -17,6 +17,7 @@ import {
   saveEquipmentStatus,
   isAdminAuthenticated,
   setAdminAuthenticated,
+  getPackageExpiryMeta,
 } from '../lib/dashboardStorage.js';
 
 export default function AdminDashboard({ onNavigateToWebsite }) {
@@ -31,13 +32,29 @@ export default function AdminDashboard({ onNavigateToWebsite }) {
   const [activeTab, setActiveTab] = useState('members'); // 'members' | 'attendance' | 'equipment'
   const [searchQuery, setSearchQuery] = useState('');
 
+  // Detailed Member Dossier Modal state
+  const [selectedMember, setSelectedMember] = useState(null);
+  const [tempAdminNote, setTempAdminNote] = useState('');
+
   // Add Member Form state
   const [isAddingMember, setIsAddingMember] = useState(false);
   const [newName, setNewName] = useState('');
   const [newPhone, setNewPhone] = useState('');
   const [newEmail, setNewEmail] = useState('');
+  const [newAge, setNewAge] = useState(25);
+  const [newGender, setNewGender] = useState('Male');
+  const [newBloodGroup, setNewBloodGroup] = useState('B+');
+  const [newAddress, setNewAddress] = useState('Indore');
+  const [newEmergencyName, setNewEmergencyName] = useState('');
+  const [newEmergencyPhone, setNewEmergencyPhone] = useState('');
+  const [newEmergencyRelation, setNewEmergencyRelation] = useState('Family');
+  const [newHealthNotes, setNewHealthNotes] = useState('Cleared for heavy barbell lifts.');
+  const [newCoach, setNewCoach] = useState('Coach Mohit (Head Coach)');
   const [newPlan, setNewPlan] = useState('Quarterly Pro');
   const [newDurationMonths, setNewDurationMonths] = useState(3);
+  const [newFee, setNewFee] = useState(8500);
+  const [newPaymentStatus, setNewPaymentStatus] = useState('Paid');
+  const [newPaymentMethod, setNewPaymentMethod] = useState('UPI');
 
   // Manual Check-in state
   const [manualMemberId, setManualMemberId] = useState(members[0]?.id || '');
@@ -59,6 +76,69 @@ export default function AdminDashboard({ onNavigateToWebsite }) {
     setPinInput('');
   };
 
+  const handleOpenDossier = (member) => {
+    setSelectedMember(member);
+    setTempAdminNote(member.adminNotes || '');
+  };
+
+  const handleCloseDossier = () => {
+    setSelectedMember(null);
+  };
+
+  const handleSaveDossierNotes = () => {
+    if (!selectedMember) return;
+    const updated = members.map((m) =>
+      m.id === selectedMember.id ? { ...m, adminNotes: tempAdminNote } : m
+    );
+    setMembers(updated);
+    saveStoredMembers(updated);
+    setSelectedMember({ ...selectedMember, adminNotes: tempAdminNote });
+  };
+
+  const handleExtendPackage = (id, months = 1) => {
+    const updated = members.map((m) => {
+      if (m.id !== id) return m;
+      const currentExp = new Date(m.expiryDate || m.package?.endDate || new Date());
+      const baseDate = isNaN(currentExp.getTime()) ? new Date() : currentExp;
+      baseDate.setMonth(baseDate.getMonth() + months);
+      const newExpiryStr = baseDate.toISOString().split('T')[0];
+
+      const updatedPackage = {
+        ...(m.package || {}),
+        endDate: newExpiryStr,
+        durationMonths: (m.package?.durationMonths || 1) + months,
+        paymentStatus: 'Paid',
+      };
+
+      const meta = getPackageExpiryMeta(newExpiryStr);
+
+      const modified = {
+        ...m,
+        expiryDate: newExpiryStr,
+        status: meta.status,
+        package: updatedPackage,
+      };
+
+      if (selectedMember && selectedMember.id === id) {
+        setSelectedMember(modified);
+      }
+      return modified;
+    });
+
+    setMembers(updated);
+    saveStoredMembers(updated);
+  };
+
+  const handleDeleteMember = (id) => {
+    if (!window.confirm('Are you sure you want to remove this member profile?')) return;
+    const updated = members.filter((m) => m.id !== id);
+    setMembers(updated);
+    saveStoredMembers(updated);
+    if (selectedMember && selectedMember.id === id) {
+      setSelectedMember(null);
+    }
+  };
+
   const handleAddMember = (e) => {
     e.preventDefault();
     if (!newName.trim() || !newPhone.trim()) return;
@@ -75,18 +155,45 @@ export default function AdminDashboard({ onNavigateToWebsite }) {
         ? 'var(--plate-red)'
         : 'var(--plate-blue)';
 
+    const expiryStr = expiry.toISOString().split('T')[0];
+    const todayStr = today.toISOString().split('T')[0];
+
     const newMember = {
       id: nextId,
       name: newName.trim(),
       phone: newPhone.trim(),
       email: newEmail.trim() || `${newName.toLowerCase().replace(/\s+/g, '.')}@gmail.com`,
+      age: Number(newAge),
+      gender: newGender,
+      bloodGroup: newBloodGroup,
+      address: newAddress.trim() || 'Indore',
+      emergencyContact: {
+        name: newEmergencyName.trim() || 'Family Contact',
+        phone: newEmergencyPhone.trim() || newPhone.trim(),
+        relation: newEmergencyRelation,
+      },
+      healthNotes: newHealthNotes.trim() || 'No limitations specified.',
+      assignedCoach: newCoach,
       plan: newPlan,
       planAccent: accent,
-      joinDate: today.toISOString().split('T')[0],
-      expiryDate: expiry.toISOString().split('T')[0],
+      joinDate: todayStr,
+      expiryDate: expiryStr,
       status: 'active',
       streakDays: 1,
       avatar: newName.charAt(0).toUpperCase(),
+      package: {
+        tier: newPlan,
+        durationMonths: Number(newDurationMonths),
+        startDate: todayStr,
+        endDate: expiryStr,
+        fee: Number(newFee),
+        paymentStatus: newPaymentStatus,
+        paymentMethod: newPaymentMethod,
+        invoiceNumber: `INV-IND-${Math.floor(1000 + Math.random() * 9000)}`,
+        includesCoaching: newPlan !== 'Monthly Starter',
+        lockerAllocated: newPlan === 'Annual Elite' ? 'VIP Locker' : 'General Locker',
+      },
+      adminNotes: 'Newly enrolled athlete. Goal: Strength & conditioning.',
     };
 
     const nextMembers = [newMember, ...members];
@@ -97,29 +204,8 @@ export default function AdminDashboard({ onNavigateToWebsite }) {
     setNewName('');
     setNewPhone('');
     setNewEmail('');
-  };
-
-  const handleExtendMember = (id, months = 1) => {
-    const updated = members.map((m) => {
-      if (m.id !== id) return m;
-      const currentExp = new Date(m.expiryDate);
-      const baseDate = isNaN(currentExp.getTime()) ? new Date() : currentExp;
-      baseDate.setMonth(baseDate.getMonth() + months);
-      return {
-        ...m,
-        expiryDate: baseDate.toISOString().split('T')[0],
-        status: 'active',
-      };
-    });
-    setMembers(updated);
-    saveStoredMembers(updated);
-  };
-
-  const handleDeleteMember = (id) => {
-    if (!window.confirm('Are you sure you want to remove this member profile?')) return;
-    const updated = members.filter((m) => m.id !== id);
-    setMembers(updated);
-    saveStoredMembers(updated);
+    setNewEmergencyName('');
+    setNewEmergencyPhone('');
   };
 
   const handleManualCheckIn = () => {
@@ -153,13 +239,15 @@ export default function AdminDashboard({ onNavigateToWebsite }) {
       m.name.toLowerCase().includes(q) ||
       m.phone.toLowerCase().includes(q) ||
       m.plan.toLowerCase().includes(q) ||
-      m.id.toLowerCase().includes(q)
+      m.id.toLowerCase().includes(q) ||
+      (m.assignedCoach && m.assignedCoach.toLowerCase().includes(q))
     );
   });
 
   // Calculate quick KPIs
   const activeCount = members.filter((m) => m.status === 'active').length;
   const expiringCount = members.filter((m) => m.status === 'expiring').length;
+  const expiredCount = members.filter((m) => m.status === 'expired').length;
   const estMonthlyRev = (activeCount * 2800).toLocaleString('en-IN');
 
   // If locked, render PIN Gate
@@ -177,7 +265,7 @@ export default function AdminDashboard({ onNavigateToWebsite }) {
             Tri-Star Admin Portal
           </h2>
           <p style={{ color: 'var(--muted)', fontSize: '0.95rem', marginBottom: '1.5rem' }}>
-            Please enter your management security PIN to access member rosters, revenue reports, and facility tools.
+            Enter your management security PIN to track member personal details, active packages, end dates, and gym health.
           </p>
 
           <form onSubmit={handleLogin}>
@@ -231,11 +319,11 @@ export default function AdminDashboard({ onNavigateToWebsite }) {
       <div className="dashboard-topbar">
         <div className="dashboard-header-title">
           <span className="badge-tag" style={{ background: 'var(--plate-red)', color: '#fff' }}>
-            GYM MANAGEMENT
+            OWNER & DESK CONSOLE
           </span>
-          <h1 className="dashboard-heading">Tri-Star Command Center</h1>
+          <h1 className="dashboard-heading">Member & Package Management</h1>
           <p className="dashboard-sub">
-            Indore Sapna Sangeeta Facility • Member Administration & Real-Time Desk
+            Track member personal dossiers, active packages, end date counts, emergency contacts, and renewals.
           </p>
         </div>
 
@@ -266,21 +354,36 @@ export default function AdminDashboard({ onNavigateToWebsite }) {
           <div className="kpi-val-row">
             <span className="kpi-val">{activeCount}</span>
             <span className="kpi-badge" style={{ background: 'var(--plate-green)', color: '#fff' }}>
-              +8 this month
+              {members.length} Total Registered
             </span>
           </div>
-          <span className="kpi-sub">Total registered athletes</span>
+          <span className="kpi-sub">Active biometric privileges</span>
         </div>
 
         <div className="admin-kpi-card">
-          <span className="kpi-label">Today's Check-Ins</span>
+          <span className="kpi-label">Expiring Soon (&le; 7 Days)</span>
           <div className="kpi-val-row">
-            <span className="kpi-val">{attendance.length}</span>
-            <span className="kpi-badge" style={{ background: 'var(--plate-blue)', color: '#fff' }}>
-              Turf peak
+            <span className="kpi-val" style={{ color: 'var(--plate-yellow)' }}>
+              {expiringCount}
+            </span>
+            <span className="kpi-badge" style={{ background: 'var(--plate-yellow)', color: '#14161b' }}>
+              Renewal Due
             </span>
           </div>
-          <span className="kpi-sub">Desk & App verifications</span>
+          <span className="kpi-sub">Upcoming package renewals</span>
+        </div>
+
+        <div className="admin-kpi-card">
+          <span className="kpi-label">Expired Packages</span>
+          <div className="kpi-val-row">
+            <span className="kpi-val" style={{ color: 'var(--plate-red)' }}>
+              {expiredCount}
+            </span>
+            <span className="kpi-badge" style={{ background: 'var(--plate-red)', color: '#fff' }}>
+              Access Stopped
+            </span>
+          </div>
+          <span className="kpi-sub">Requires package extension</span>
         </div>
 
         <div className="admin-kpi-card">
@@ -288,31 +391,18 @@ export default function AdminDashboard({ onNavigateToWebsite }) {
           <div className="kpi-val-row">
             <span className="kpi-val">₹{estMonthlyRev}</span>
           </div>
-          <span className="kpi-sub">Pro, Starter & Elite tiers</span>
-        </div>
-
-        <div className="admin-kpi-card">
-          <span className="kpi-label">Expiring Soon (&lt; 7 Days)</span>
-          <div className="kpi-val-row">
-            <span className="kpi-val" style={{ color: 'var(--plate-yellow)' }}>
-              {expiringCount}
-            </span>
-            <span className="kpi-badge" style={{ background: 'var(--plate-yellow)', color: '#14161b' }}>
-              Action needed
-            </span>
-          </div>
-          <span className="kpi-sub">Requires renewal WhatsApp</span>
+          <span className="kpi-sub">Sapna Sangeeta gym subscriptions</span>
         </div>
       </div>
 
-      {/* Tabs Switcher */}
+      {/* Navigation Tabs */}
       <div className="admin-tabs-nav">
         <button
           type="button"
           className={`admin-tab-btn ${activeTab === 'members' ? 'active' : ''}`}
           onClick={() => setActiveTab('members')}
         >
-          👥 Member Roster ({members.length})
+          👥 Member Directory & Package Tracker ({members.length})
         </button>
         <button
           type="button"
@@ -330,21 +420,24 @@ export default function AdminDashboard({ onNavigateToWebsite }) {
         </button>
       </div>
 
-      {/* TAB 1: MEMBERS */}
+      {/* TAB 1: MEMBERS WITH TRACKING */}
       {activeTab === 'members' && (
         <div className="dashboard-card" style={{ marginTop: '1.25rem' }}>
           <div className="card-header-flex">
             <div>
-              <span className="section-label">DIRECTORY</span>
-              <h3 className="card-title">Member Database</h3>
+              <span className="section-label">ATHLETE DIRECTORY</span>
+              <h3 className="card-title">All Members, Active Plans & Package End Dates</h3>
+              <p className="card-desc">
+                Click <strong>"👁️ Track Profile"</strong> on any athlete to view their complete personal dossier, medical conditions, emergency contacts, and renew packages.
+              </p>
             </div>
 
-            <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
+            <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', flexWrap: 'wrap' }}>
               <input
                 type="text"
                 className="dashboard-input"
-                style={{ width: '220px' }}
-                placeholder="Search name, phone, plan..."
+                style={{ width: '240px' }}
+                placeholder="Search name, phone, coach, ID..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
               />
@@ -353,20 +446,30 @@ export default function AdminDashboard({ onNavigateToWebsite }) {
                 className="btn-solid btn-red"
                 onClick={() => setIsAddingMember(!isAddingMember)}
               >
-                {isAddingMember ? '✕ Cancel' : '+ Add New Member'}
+                {isAddingMember ? '✕ Cancel' : '+ Enroll Member'}
               </button>
             </div>
           </div>
 
-          {/* Add Member Form Drawer */}
+          {/* ADD MEMBER FORM (Comprehensive Personal & Package details) */}
           {isAddingMember && (
             <form className="workout-form-card" onSubmit={handleAddMember}>
-              <h4 style={{ fontFamily: 'var(--font-heading)', fontSize: '1.25rem', marginBottom: '0.75rem' }}>
-                Enroll New Member
-              </h4>
+              <div style={{ borderBottom: '2px solid var(--ink)', paddingBottom: '0.75rem', marginBottom: '1rem' }}>
+                <h4 style={{ fontFamily: 'var(--font-heading)', fontSize: '1.45rem', color: 'var(--ink)' }}>
+                  Enroll New Athlete & Assign Package
+                </h4>
+                <p style={{ fontSize: '0.85rem', color: 'var(--muted)' }}>
+                  Record member personal info, assigned coach, health checks, package start & end details.
+                </p>
+              </div>
+
+              {/* Personal Details */}
+              <span className="section-label" style={{ marginBottom: '0.5rem', display: 'block' }}>
+                1. PERSONAL & CONTACT DETAILS
+              </span>
               <div className="form-grid">
                 <div className="form-group">
-                  <label className="form-label">Full Name</label>
+                  <label className="form-label">Full Name *</label>
                   <input
                     type="text"
                     className="dashboard-input"
@@ -377,7 +480,7 @@ export default function AdminDashboard({ onNavigateToWebsite }) {
                   />
                 </div>
                 <div className="form-group">
-                  <label className="form-label">Phone Number</label>
+                  <label className="form-label">Phone Number *</label>
                   <input
                     type="tel"
                     className="dashboard-input"
@@ -398,34 +501,181 @@ export default function AdminDashboard({ onNavigateToWebsite }) {
                   />
                 </div>
                 <div className="form-group">
-                  <label className="form-label">Membership Tier</label>
+                  <label className="form-label">Age</label>
+                  <input
+                    type="number"
+                    min="14"
+                    max="80"
+                    className="dashboard-input"
+                    value={newAge}
+                    onChange={(e) => setNewAge(e.target.value)}
+                    required
+                  />
+                </div>
+                <div className="form-group">
+                  <label className="form-label">Gender</label>
                   <select
                     className="dashboard-select"
-                    value={newPlan}
-                    onChange={(e) => setNewPlan(e.target.value)}
+                    value={newGender}
+                    onChange={(e) => setNewGender(e.target.value)}
                   >
-                    <option value="Monthly Starter">Monthly Starter</option>
-                    <option value="Quarterly Pro">Quarterly Pro</option>
-                    <option value="Annual Elite">Annual Elite</option>
+                    <option value="Male">Male</option>
+                    <option value="Female">Female</option>
+                    <option value="Other">Other</option>
                   </select>
                 </div>
                 <div className="form-group">
-                  <label className="form-label">Plan Duration (Months)</label>
+                  <label className="form-label">Blood Group</label>
+                  <select
+                    className="dashboard-select"
+                    value={newBloodGroup}
+                    onChange={(e) => setNewBloodGroup(e.target.value)}
+                  >
+                    <option value="O+">O+</option>
+                    <option value="A+">A+</option>
+                    <option value="B+">B+</option>
+                    <option value="AB+">AB+</option>
+                    <option value="O-">O-</option>
+                    <option value="A-">A-</option>
+                    <option value="B-">B-</option>
+                    <option value="AB-">AB-</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* Emergency Contact & Medical */}
+              <span className="section-label" style={{ margin: '1.25rem 0 0.5rem', display: 'block' }}>
+                2. EMERGENCY CONTACT & HEALTH
+              </span>
+              <div className="form-grid">
+                <div className="form-group">
+                  <label className="form-label">Emergency Contact Name</label>
+                  <input
+                    type="text"
+                    className="dashboard-input"
+                    value={newEmergencyName}
+                    onChange={(e) => setNewEmergencyName(e.target.value)}
+                    placeholder="e.g. Rajesh Mehta (Father)"
+                  />
+                </div>
+                <div className="form-group">
+                  <label className="form-label">Emergency Phone</label>
+                  <input
+                    type="tel"
+                    className="dashboard-input"
+                    value={newEmergencyPhone}
+                    onChange={(e) => setNewEmergencyPhone(e.target.value)}
+                    placeholder="+91 98260 11002"
+                  />
+                </div>
+                <div className="form-group">
+                  <label className="form-label">Assigned Coach</label>
+                  <select
+                    className="dashboard-select"
+                    value={newCoach}
+                    onChange={(e) => setNewCoach(e.target.value)}
+                  >
+                    <option value="Coach Mohit (Head Coach)">Coach Mohit (Head Coach)</option>
+                    <option value="Coach Pooja (Functional Lead)">Coach Pooja (Functional Lead)</option>
+                    <option value="Coach Rahul (Strength Specialist)">Coach Rahul (Strength Specialist)</option>
+                    <option value="General Floor Supervision">General Floor Supervision</option>
+                  </select>
+                </div>
+                <div className="form-group" style={{ gridColumn: 'span 2' }}>
+                  <label className="form-label">Medical & Injury Notes</label>
+                  <input
+                    type="text"
+                    className="dashboard-input"
+                    value={newHealthNotes}
+                    onChange={(e) => setNewHealthNotes(e.target.value)}
+                    placeholder="e.g. Lower back stiffness, Asthmatic, or None"
+                  />
+                </div>
+              </div>
+
+              {/* Package & Payment Details */}
+              <span className="section-label" style={{ margin: '1.25rem 0 0.5rem', display: 'block' }}>
+                3. ACTIVE PACKAGE & SUBSCRIPTION END DETAILS
+              </span>
+              <div className="form-grid">
+                <div className="form-group">
+                  <label className="form-label">Package Tier</label>
+                  <select
+                    className="dashboard-select"
+                    value={newPlan}
+                    onChange={(e) => {
+                      const p = e.target.value;
+                      setNewPlan(p);
+                      if (p === 'Monthly Starter') {
+                        setNewDurationMonths(1);
+                        setNewFee(3200);
+                      } else if (p === 'Quarterly Pro') {
+                        setNewDurationMonths(3);
+                        setNewFee(8500);
+                      } else if (p === 'Annual Elite') {
+                        setNewDurationMonths(12);
+                        setNewFee(28000);
+                      }
+                    }}
+                  >
+                    <option value="Monthly Starter">Monthly Starter (1 Mo)</option>
+                    <option value="Quarterly Pro">Quarterly Pro (3 Mos)</option>
+                    <option value="Annual Elite">Annual Elite (12 Mos)</option>
+                  </select>
+                </div>
+                <div className="form-group">
+                  <label className="form-label">Package Duration (Months)</label>
                   <input
                     type="number"
                     min="1"
-                    max="24"
+                    max="36"
                     className="dashboard-input"
                     value={newDurationMonths}
                     onChange={(e) => setNewDurationMonths(e.target.value)}
                     required
                   />
                 </div>
+                <div className="form-group">
+                  <label className="form-label">Package Fee (₹)</label>
+                  <input
+                    type="number"
+                    min="0"
+                    className="dashboard-input"
+                    value={newFee}
+                    onChange={(e) => setNewFee(e.target.value)}
+                    required
+                  />
+                </div>
+                <div className="form-group">
+                  <label className="form-label">Payment Status</label>
+                  <select
+                    className="dashboard-select"
+                    value={newPaymentStatus}
+                    onChange={(e) => setNewPaymentStatus(e.target.value)}
+                  >
+                    <option value="Paid">Paid</option>
+                    <option value="Partial">Partial</option>
+                    <option value="Due">Payment Due</option>
+                  </select>
+                </div>
+                <div className="form-group">
+                  <label className="form-label">Payment Method</label>
+                  <select
+                    className="dashboard-select"
+                    value={newPaymentMethod}
+                    onChange={(e) => setNewPaymentMethod(e.target.value)}
+                  >
+                    <option value="UPI">UPI / QR Code</option>
+                    <option value="Cash">Cash</option>
+                    <option value="Card">Credit / Debit Card</option>
+                    <option value="NetBanking">Net Banking</option>
+                  </select>
+                </div>
               </div>
 
-              <div style={{ display: 'flex', gap: '0.75rem', marginTop: '1rem' }}>
+              <div style={{ display: 'flex', gap: '0.75rem', marginTop: '1.25rem' }}>
                 <button type="submit" className="btn-solid btn-red">
-                  Enroll & Activate Member
+                  Enroll & Activate Package
                 </button>
                 <button
                   type="button"
@@ -444,83 +694,355 @@ export default function AdminDashboard({ onNavigateToWebsite }) {
               <thead>
                 <tr>
                   <th>Member ID</th>
-                  <th>Athlete Name</th>
-                  <th>Contact Info</th>
-                  <th>Current Plan</th>
-                  <th>Valid Until</th>
-                  <th>Status</th>
-                  <th style={{ textAlign: 'right' }}>Actions</th>
+                  <th>Athlete & Personal Details</th>
+                  <th>Active Package</th>
+                  <th>Package End Details</th>
+                  <th>Emergency Contact</th>
+                  <th style={{ textAlign: 'right' }}>Management</th>
                 </tr>
               </thead>
               <tbody>
                 {filteredMembers.length === 0 ? (
                   <tr>
-                    <td colSpan="7" style={{ textAlign: 'center', padding: '2rem', color: 'var(--muted)' }}>
-                      No members matched your search.
+                    <td colSpan="6" style={{ textAlign: 'center', padding: '2.5rem', color: 'var(--muted)' }}>
+                      No members matched your search query.
                     </td>
                   </tr>
                 ) : (
-                  filteredMembers.map((m) => (
-                    <tr key={m.id}>
-                      <td>
-                        <code>{m.id}</code>
-                      </td>
-                      <td>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
-                          <span className="table-avatar">{m.avatar || m.name.charAt(0)}</span>
-                          <strong>{m.name}</strong>
-                        </div>
-                      </td>
-                      <td>
-                        <div style={{ fontSize: '0.85rem' }}>
-                          <div>{m.phone}</div>
-                          <div style={{ color: 'var(--muted)' }}>{m.email}</div>
-                        </div>
-                      </td>
-                      <td>
-                        <span
-                          className="badge-tag"
-                          style={{
-                            background: m.planAccent || 'var(--plate-blue)',
-                            color: m.plan === 'Annual Elite' ? '#14161b' : '#fff',
-                          }}
-                        >
-                          {m.plan}
-                        </span>
-                      </td>
-                      <td>{m.expiryDate}</td>
-                      <td>
-                        <span
-                          className={`member-status-pill status-${m.status}`}
-                        >
-                          {m.status.toUpperCase()}
-                        </span>
-                      </td>
-                      <td style={{ textAlign: 'right' }}>
-                        <div style={{ display: 'flex', gap: '0.35rem', justifyContent: 'flex-end' }}>
-                          <button
-                            type="button"
-                            className="btn-table-action"
-                            title="Extend 1 month"
-                            onClick={() => handleExtendMember(m.id, 1)}
-                          >
-                            +1 Mo
-                          </button>
-                          <button
-                            type="button"
-                            className="btn-table-action btn-delete-action"
-                            title="Delete member"
-                            onClick={() => handleDeleteMember(m.id)}
-                          >
-                            ✕
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))
+                  filteredMembers.map((m) => {
+                    const expiry = m.expiryDate || m.package?.endDate;
+                    const meta = getPackageExpiryMeta(expiry);
+                    return (
+                      <tr key={m.id}>
+                        <td>
+                          <code>{m.id}</code>
+                        </td>
+                        <td>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                            <span className="table-avatar">{m.avatar || m.name.charAt(0)}</span>
+                            <div>
+                              <div style={{ fontWeight: 800, fontSize: '1rem', color: 'var(--ink)' }}>
+                                {m.name}
+                              </div>
+                              <div style={{ fontSize: '0.8rem', color: 'var(--muted)' }}>
+                                {m.gender || 'Athlete'} • {m.age ? `${m.age} yrs` : ''} • Blood: {m.bloodGroup || 'O+'}
+                              </div>
+                              <div style={{ fontSize: '0.8rem', color: 'var(--ink)' }}>
+                                📞 {m.phone}
+                              </div>
+                              <div style={{ fontSize: '0.78rem', color: 'var(--plate-blue)', fontWeight: 600 }}>
+                                Coach: {m.assignedCoach || 'Coach Mohit'}
+                              </div>
+                            </div>
+                          </div>
+                        </td>
+                        <td>
+                          <div>
+                            <span
+                              className="badge-tag"
+                              style={{
+                                background: m.planAccent || 'var(--plate-blue)',
+                                color: m.plan === 'Annual Elite' ? '#14161b' : '#fff',
+                              }}
+                            >
+                              {m.plan}
+                            </span>
+                            <div style={{ fontSize: '0.8rem', marginTop: '0.25rem', fontWeight: 700 }}>
+                              ₹{m.package?.fee ? m.package.fee.toLocaleString('en-IN') : '8,500'}{' '}
+                              <span
+                                style={{
+                                  fontSize: '0.72rem',
+                                  color: m.package?.paymentStatus === 'Paid' ? 'var(--plate-green)' : 'var(--plate-red)',
+                                }}
+                              >
+                                ({m.package?.paymentStatus || 'Paid'})
+                              </span>
+                            </div>
+                            <div style={{ fontSize: '0.75rem', color: 'var(--muted)' }}>
+                              Joined: {m.joinDate}
+                            </div>
+                          </div>
+                        </td>
+                        <td>
+                          <div>
+                            <div style={{ fontWeight: 800, fontSize: '0.92rem' }}>
+                              🗓️ {expiry}
+                            </div>
+                            <div style={{ marginTop: '0.2rem' }}>
+                              <span
+                                className={`member-status-pill status-${meta.status}`}
+                              >
+                                {meta.label}
+                              </span>
+                            </div>
+                            <div style={{ fontSize: '0.75rem', color: 'var(--muted)', marginTop: '0.2rem' }}>
+                              Duration: {m.package?.durationMonths || 3} Months
+                            </div>
+                          </div>
+                        </td>
+                        <td>
+                          <div style={{ fontSize: '0.82rem' }}>
+                            <div style={{ fontWeight: 700 }}>
+                              {m.emergencyContact?.name || 'Emergency Contact'}
+                            </div>
+                            <div style={{ color: 'var(--plate-red)', fontWeight: 600 }}>
+                              📞 {m.emergencyContact?.phone || m.phone}
+                            </div>
+                          </div>
+                        </td>
+                        <td style={{ textAlign: 'right' }}>
+                          <div style={{ display: 'flex', gap: '0.4rem', justifyContent: 'flex-end', flexWrap: 'wrap' }}>
+                            <button
+                              type="button"
+                              className="btn-table-action"
+                              style={{ background: 'var(--plate-blue)', color: '#fff', border: 'none' }}
+                              title="View full personal details & package dossier"
+                              onClick={() => handleOpenDossier(m)}
+                            >
+                              👁️ Track Profile
+                            </button>
+                            <button
+                              type="button"
+                              className="btn-table-action"
+                              title="Extend package by +1 month"
+                              onClick={() => handleExtendPackage(m.id, 1)}
+                            >
+                              +1 Mo
+                            </button>
+                            <button
+                              type="button"
+                              className="btn-table-action btn-delete-action"
+                              title="Remove member"
+                              onClick={() => handleDeleteMember(m.id)}
+                            >
+                              ✕
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })
                 )}
               </tbody>
             </table>
+          </div>
+        </div>
+      )}
+
+      {/* MEMBER DOSSIER / FULL TRACKING MODAL */}
+      {selectedMember && (
+        <div className="dossier-modal-backdrop" onClick={handleCloseDossier}>
+          <div className="dossier-modal-card" onClick={(e) => e.stopPropagation()}>
+            {/* Modal Header */}
+            <div className="dossier-modal-header">
+              <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                <div className="member-avatar" style={{ width: '56px', height: '56px', fontSize: '1.8rem' }}>
+                  {selectedMember.avatar || selectedMember.name.charAt(0)}
+                </div>
+                <div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+                    <h3 style={{ fontFamily: 'var(--font-heading)', fontSize: '1.8rem', color: 'var(--ink)' }}>
+                      {selectedMember.name}
+                    </h3>
+                    <span
+                      className={`member-status-pill status-${
+                        getPackageExpiryMeta(selectedMember.expiryDate || selectedMember.package?.endDate).status
+                      }`}
+                    >
+                      {selectedMember.status?.toUpperCase() || 'ACTIVE'}
+                    </span>
+                  </div>
+                  <p style={{ fontSize: '0.85rem', color: 'var(--muted)' }}>
+                    Member ID: <strong>{selectedMember.id}</strong> • Joined: {selectedMember.joinDate} • Current Streak: 🔥 {selectedMember.streakDays || 1} Days
+                  </p>
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                <a
+                  href={`https://wa.me/${selectedMember.phone.replace(/[^0-9]/g, '')}?text=Hi%20${encodeURIComponent(
+                    selectedMember.name
+                  )},%20this%20is%20Tri-Star%20Fitness%20Indore.`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="btn-solid btn-green"
+                  style={{ padding: '0.4rem 0.85rem', fontSize: '0.85rem' }}
+                >
+                  💬 WhatsApp
+                </a>
+                <button
+                  type="button"
+                  className="btn-action-delete"
+                  style={{ fontSize: '1.2rem', padding: '0.2rem 0.6rem' }}
+                  onClick={handleCloseDossier}
+                >
+                  ✕
+                </button>
+              </div>
+            </div>
+
+            {/* Modal Body */}
+            <div className="dossier-modal-body">
+              {/* SECTION A: Personal & Medical Details */}
+              <div className="dossier-section-card">
+                <span className="section-label">ATHLETE PERSONAL & MEDICAL DOSSIER</span>
+                <div className="dossier-grid">
+                  <div className="dossier-item">
+                    <span className="dossier-label">Age & Gender</span>
+                    <span className="dossier-val">{selectedMember.age || 26} Years • {selectedMember.gender || 'Male'}</span>
+                  </div>
+                  <div className="dossier-item">
+                    <span className="dossier-label">Blood Group</span>
+                    <span className="dossier-val">{selectedMember.bloodGroup || 'B+'}</span>
+                  </div>
+                  <div className="dossier-item">
+                    <span className="dossier-label">Phone & Email</span>
+                    <span className="dossier-val">{selectedMember.phone}</span>
+                    <span className="dossier-sub">{selectedMember.email}</span>
+                  </div>
+                  <div className="dossier-item">
+                    <span className="dossier-label">Residential Address</span>
+                    <span className="dossier-val">{selectedMember.address || 'Indore, MP'}</span>
+                  </div>
+                  <div className="dossier-item">
+                    <span className="dossier-label">Emergency Contact</span>
+                    <span className="dossier-val" style={{ color: 'var(--plate-red)', fontWeight: 800 }}>
+                      📞 {selectedMember.emergencyContact?.phone || selectedMember.phone}
+                    </span>
+                    <span className="dossier-sub">{selectedMember.emergencyContact?.name || 'Primary Contact'}</span>
+                  </div>
+                  <div className="dossier-item">
+                    <span className="dossier-label">Assigned Coach</span>
+                    <span className="dossier-val" style={{ color: 'var(--plate-blue)', fontWeight: 800 }}>
+                      🏋️ {selectedMember.assignedCoach || 'Coach Mohit (Head Coach)'}
+                    </span>
+                  </div>
+                </div>
+
+                <div style={{ marginTop: '0.85rem', background: 'var(--card)', padding: '0.75rem 1rem', border: '1px solid var(--line)', borderRadius: '6px' }}>
+                  <span style={{ fontSize: '0.75rem', fontWeight: 800, textTransform: 'uppercase', color: 'var(--muted)', display: 'block' }}>
+                    Health & Injury Protocol
+                  </span>
+                  <p style={{ fontSize: '0.88rem', color: 'var(--ink)', marginTop: '0.2rem' }}>
+                    {selectedMember.healthNotes || 'No cardiovascular, joint, or respiratory limitations recorded.'}
+                  </p>
+                </div>
+              </div>
+
+              {/* SECTION B: Active Package & Expiry Details */}
+              <div className="dossier-section-card" style={{ borderColor: 'var(--plate-yellow)' }}>
+                <span className="section-label" style={{ color: 'var(--plate-yellow)' }}>
+                  ACTIVE PACKAGE & EXPIRATION TRACKING
+                </span>
+
+                {(() => {
+                  const expiry = selectedMember.expiryDate || selectedMember.package?.endDate;
+                  const meta = getPackageExpiryMeta(expiry);
+                  return (
+                    <div style={{ marginTop: '0.5rem' }}>
+                      <div className="package-banner-box">
+                        <div>
+                          <span className="badge-tag" style={{ background: selectedMember.planAccent || 'var(--plate-red)', color: '#fff' }}>
+                            {selectedMember.plan}
+                          </span>
+                          <h4 style={{ fontFamily: 'var(--font-heading)', fontSize: '1.6rem', marginTop: '0.25rem' }}>
+                            {selectedMember.package?.durationMonths || 3} Months Subscription
+                          </h4>
+                        </div>
+
+                        <div style={{ textAlign: 'right' }}>
+                          <span className={`member-status-pill status-${meta.status}`} style={{ fontSize: '0.85rem', padding: '0.35rem 0.85rem' }}>
+                            {meta.label}
+                          </span>
+                          <div style={{ fontSize: '0.85rem', color: 'var(--muted)', marginTop: '0.25rem' }}>
+                            Package End Date: <strong>{expiry}</strong>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="dossier-grid" style={{ marginTop: '0.85rem' }}>
+                        <div className="dossier-item">
+                          <span className="dossier-label">Package Fee</span>
+                          <span className="dossier-val">₹{selectedMember.package?.fee ? selectedMember.package.fee.toLocaleString('en-IN') : '8,500'}</span>
+                          <span className="dossier-sub">Status: {selectedMember.package?.paymentStatus || 'Paid'}</span>
+                        </div>
+                        <div className="dossier-item">
+                          <span className="dossier-label">Payment Mode</span>
+                          <span className="dossier-val">{selectedMember.package?.paymentMethod || 'UPI (GPay)'}</span>
+                          <span className="dossier-sub">{selectedMember.package?.invoiceNumber || 'INV-2026'}</span>
+                        </div>
+                        <div className="dossier-item">
+                          <span className="dossier-label">Locker Facility</span>
+                          <span className="dossier-val">{selectedMember.package?.lockerAllocated || 'Locker #14'}</span>
+                        </div>
+                        <div className="dossier-item">
+                          <span className="dossier-label">Package Privileges</span>
+                          <span className="dossier-val" style={{ color: 'var(--plate-green)', fontSize: '0.88rem' }}>
+                            ✓ HYROX Turf + Free Weights + Coach Review
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Instant Package Extension Buttons */}
+                      <div style={{ marginTop: '1rem', borderTop: '1px solid var(--line)', paddingTop: '0.85rem' }}>
+                        <span style={{ fontSize: '0.78rem', fontWeight: 800, textTransform: 'uppercase', color: 'var(--muted)' }}>
+                          Extend / Renew Package:
+                        </span>
+                        <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.5rem', flexWrap: 'wrap' }}>
+                          <button
+                            type="button"
+                            className="btn-solid btn-blue"
+                            style={{ padding: '0.45rem 0.95rem', fontSize: '0.85rem' }}
+                            onClick={() => handleExtendPackage(selectedMember.id, 1)}
+                          >
+                            +1 Month (₹3,200)
+                          </button>
+                          <button
+                            type="button"
+                            className="btn-solid btn-red"
+                            style={{ padding: '0.45rem 0.95rem', fontSize: '0.85rem' }}
+                            onClick={() => handleExtendPackage(selectedMember.id, 3)}
+                          >
+                            +3 Months (Quarterly Pro)
+                          </button>
+                          <button
+                            type="button"
+                            className="btn-solid btn-outline"
+                            style={{ padding: '0.45rem 0.95rem', fontSize: '0.85rem' }}
+                            onClick={() => handleExtendPackage(selectedMember.id, 12)}
+                          >
+                            +12 Months (Annual Elite)
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })()}
+              </div>
+
+              {/* SECTION C: Owner / Coach Private Notes */}
+              <div className="dossier-section-card">
+                <span className="section-label">COACH & DESK NOTES</span>
+                <textarea
+                  className="dashboard-input"
+                  rows="3"
+                  style={{ width: '100%', marginTop: '0.5rem', fontFamily: 'var(--font-body)', fontSize: '0.9rem' }}
+                  value={tempAdminNote}
+                  onChange={(e) => setTempAdminNote(e.target.value)}
+                  placeholder="Add goals, medical precautions, or attendance notes..."
+                />
+                <div style={{ marginTop: '0.5rem', display: 'flex', justifyContent: 'flex-end' }}>
+                  <button
+                    type="button"
+                    className="btn-solid btn-outline"
+                    style={{ padding: '0.4rem 0.95rem', fontSize: '0.85rem' }}
+                    onClick={handleSaveDossierNotes}
+                  >
+                    Save Notes
+                  </button>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       )}
