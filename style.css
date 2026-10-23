@@ -4045,3 +4045,8 @@ h4,
 
 
 
+/* Hud back-to-site & dash shortcut */
+.hud-back-site-btn{background:transparent;border:none;font-size:0.75rem;color:var(--muted);font-weight:700;cursor:pointer;padding:0.15rem 0.45rem;border-radius:4px;transition:color 0.15s;}
+.hud-back-site-btn:hover{color:var(--ink);}
+.hud-dash-btn{background:transparent;border:1px solid var(--line);font-size:0.72rem;color:var(--ink);font-weight:700;cursor:pointer;padding:0.2rem 0.5rem;border-radius:4px;transition:all 0.15s;}
+.hud-dash-btn:hover{border-color:var(--ink);background:var(--bg);}
