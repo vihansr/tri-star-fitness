@@ -1,16 +1,21 @@
 /**
  * Tri-Star Admin / Owner Management Dashboard.
- * Includes:
- * - Local PIN passcode gate (default: 1234)
- * - Member Personal Details tracking (Age, Gender, Blood group, Emergency contact, Medical notes, Assigned coach)
- * - Active Plan & Package End Details tracking (Start date, End date, Days remaining countdown, Payment status)
- * - Detailed Member Dossier Modal (View & Track Profile, Renew package, Edit notes)
- * - Live attendance feed & Equipment maintenance tracker
+ * Minimalist, high-performance UI featuring:
+ * - Revenue Model (Subscriptions, 1-on-1 PT Coaching, Nutrition Store)
+ * - Operating Expenses (Trainer Payroll, Rent, Equipment Maintenance, Power/AC, Inventory)
+ * - Net Profit & Margin Analytics
+ * - Member Personal Details Tracking & Package Expiry Countdown
+ * - Member Dossier Modal (Track, WhatsApp, Renew)
+ * - Attendance Feed & Equipment Health Monitor
  */
 import { useState } from 'react';
 import {
   getStoredMembers,
   saveStoredMembers,
+  getStoredExpenses,
+  saveStoredExpenses,
+  getStoredRevenueStreams,
+  saveStoredRevenueStreams,
   getAttendanceLogs,
   recordCheckIn,
   getEquipmentStatus,
@@ -25,23 +30,35 @@ export default function AdminDashboard({ onNavigateToWebsite }) {
   const [pinInput, setPinInput] = useState('');
   const [pinError, setPinError] = useState('');
 
-  // Data state
+  // Core Data State
   const [members, setMembers] = useState(() => getStoredMembers());
+  const [expenses, setExpenses] = useState(() => getStoredExpenses());
+  const [revenueStreams, setRevenueStreams] = useState(() => getStoredRevenueStreams());
   const [attendance, setAttendance] = useState(() => getAttendanceLogs());
   const [equipment, setEquipment] = useState(() => getEquipmentStatus());
-  const [activeTab, setActiveTab] = useState('members'); // 'members' | 'attendance' | 'equipment'
+
+  // Active Tab
+  const [activeTab, setActiveTab] = useState('financials'); // 'financials' | 'members' | 'expenses' | 'attendance' | 'equipment'
   const [searchQuery, setSearchQuery] = useState('');
 
-  // Detailed Member Dossier Modal state
+  // Modal / Form States
   const [selectedMember, setSelectedMember] = useState(null);
   const [tempAdminNote, setTempAdminNote] = useState('');
-
-  // Add Member Form state
   const [isAddingMember, setIsAddingMember] = useState(false);
+  const [isAddingExpense, setIsAddingExpense] = useState(false);
+
+  // New Expense Form State
+  const [expCategory, setExpCategory] = useState('Equipment Maintenance');
+  const [expName, setExpName] = useState('');
+  const [expAmount, setExpAmount] = useState('');
+  const [expType, setExpType] = useState('maintenance');
+  const [expNotes, setExpNotes] = useState('');
+
+  // New Member Form State
   const [newName, setNewName] = useState('');
   const [newPhone, setNewPhone] = useState('');
   const [newEmail, setNewEmail] = useState('');
-  const [newAge, setNewAge] = useState(25);
+  const [newAge, setNewAge] = useState(26);
   const [newGender, setNewGender] = useState('Male');
   const [newBloodGroup, setNewBloodGroup] = useState('B+');
   const [newAddress, setNewAddress] = useState('Indore');
@@ -56,9 +73,10 @@ export default function AdminDashboard({ onNavigateToWebsite }) {
   const [newPaymentStatus, setNewPaymentStatus] = useState('Paid');
   const [newPaymentMethod, setNewPaymentMethod] = useState('UPI');
 
-  // Manual Check-in state
+  // Manual Check-in State
   const [manualMemberId, setManualMemberId] = useState(members[0]?.id || '');
 
+  // Auth Handling
   const handleLogin = (e) => {
     e.preventDefault();
     if (pinInput === '1234') {
@@ -76,6 +94,7 @@ export default function AdminDashboard({ onNavigateToWebsite }) {
     setPinInput('');
   };
 
+  // Dossier Modal
   const handleOpenDossier = (member) => {
     setSelectedMember(member);
     setTempAdminNote(member.adminNotes || '');
@@ -95,6 +114,7 @@ export default function AdminDashboard({ onNavigateToWebsite }) {
     setSelectedMember({ ...selectedMember, adminNotes: tempAdminNote });
   };
 
+  // Package Extension
   const handleExtendPackage = (id, months = 1) => {
     const updated = members.map((m) => {
       if (m.id !== id) return m;
@@ -111,7 +131,6 @@ export default function AdminDashboard({ onNavigateToWebsite }) {
       };
 
       const meta = getPackageExpiryMeta(newExpiryStr);
-
       const modified = {
         ...m,
         expiryDate: newExpiryStr,
@@ -139,6 +158,38 @@ export default function AdminDashboard({ onNavigateToWebsite }) {
     }
   };
 
+  // Expense Handlers
+  const handleAddExpense = (e) => {
+    e.preventDefault();
+    if (!expName.trim() || !expAmount) return;
+
+    const newExp = {
+      id: `exp-${Date.now()}`,
+      category: expCategory,
+      name: expName.trim(),
+      amount: Number(expAmount),
+      date: 'Oct 2026',
+      type: expType,
+      notes: expNotes.trim() || 'Logged via Admin Console',
+    };
+
+    const nextExpenses = [newExp, ...expenses];
+    setExpenses(nextExpenses);
+    saveStoredExpenses(nextExpenses);
+
+    setIsAddingExpense(false);
+    setExpName('');
+    setExpAmount('');
+    setExpNotes('');
+  };
+
+  const handleDeleteExpense = (id) => {
+    const nextExpenses = expenses.filter((e) => e.id !== id);
+    setExpenses(nextExpenses);
+    saveStoredExpenses(nextExpenses);
+  };
+
+  // Member Enrollment
   const handleAddMember = (e) => {
     e.preventDefault();
     if (!newName.trim() || !newPhone.trim()) return;
@@ -233,6 +284,7 @@ export default function AdminDashboard({ onNavigateToWebsite }) {
     saveEquipmentStatus(updated);
   };
 
+  // Filter Members
   const filteredMembers = members.filter((m) => {
     const q = searchQuery.toLowerCase();
     return (
@@ -244,37 +296,57 @@ export default function AdminDashboard({ onNavigateToWebsite }) {
     );
   });
 
-  // Calculate quick KPIs
+  // Financial Calculations
   const activeCount = members.filter((m) => m.status === 'active').length;
   const expiringCount = members.filter((m) => m.status === 'expiring').length;
   const expiredCount = members.filter((m) => m.status === 'expired').length;
-  const estMonthlyRev = (activeCount * 2800).toLocaleString('en-IN');
 
-  // If locked, render PIN Gate
+  // Revenue Streams
+  const membershipMonthlyRevenue = Math.round(
+    members.reduce((sum, m) => {
+      const fee = m.package?.fee || 8500;
+      const duration = m.package?.durationMonths || 3;
+      return sum + fee / duration;
+    }, 0) * 1.8 // Normalized scaled floor factor
+  );
+
+  const additionalRevenue = revenueStreams.reduce((sum, r) => sum + r.amount, 0);
+  const totalGrossRevenue = membershipMonthlyRevenue + additionalRevenue;
+
+  // Expenses Calculation
+  const totalMonthlyExpenses = expenses.reduce((sum, e) => sum + e.amount, 0);
+
+  // Net Profit & Margin
+  const netProfit = totalGrossRevenue - totalMonthlyExpenses;
+  const profitMargin = totalGrossRevenue > 0 ? ((netProfit / totalGrossRevenue) * 100).toFixed(1) : 0;
+
+  // Expenses grouped by category for breakdown
+  const expensesByCategory = expenses.reduce((acc, curr) => {
+    acc[curr.category] = (acc[curr.category] || 0) + curr.amount;
+    return acc;
+  }, {});
+
+  // If locked, render Minimal PIN Gate
   if (!isAuthenticated) {
     return (
-      <div className="dashboard-container" style={{ maxWidth: '520px', marginTop: '4rem' }}>
-        <div className="dashboard-card" style={{ textAlign: 'center', padding: '2.5rem 2rem' }}>
-          <div className="admin-lock-icon" aria-hidden="true">
-            🛡️
-          </div>
-          <span className="badge-tag" style={{ background: 'var(--plate-red)', color: '#fff', margin: '0 auto 0.75rem' }}>
-            SECURE ACCESS
-          </span>
-          <h2 style={{ fontFamily: 'var(--font-heading)', fontSize: '2.2rem', marginBottom: '0.5rem' }}>
-            Tri-Star Admin Portal
+      <div className="dashboard-container" style={{ maxWidth: '440px', marginTop: '5rem' }}>
+        <div className="minimal-card" style={{ textAlign: 'center', padding: '2.5rem 2rem' }}>
+          <div style={{ fontSize: '2.4rem', marginBottom: '0.5rem' }}>🛡️</div>
+          <span className="minimal-badge-red">ADMIN SECURITY</span>
+          <h2 style={{ fontFamily: 'var(--font-heading)', fontSize: '2rem', margin: '0.5rem 0 0.25rem' }}>
+            Tri-Star Console
           </h2>
-          <p style={{ color: 'var(--muted)', fontSize: '0.95rem', marginBottom: '1.5rem' }}>
-            Enter your management security PIN to track member personal details, active packages, end dates, and gym health.
+          <p style={{ color: 'var(--muted)', fontSize: '0.88rem', marginBottom: '1.5rem', lineHeight: 1.4 }}>
+            Enter your management PIN to access facility finances, operating expenses, and member records.
           </p>
 
           <form onSubmit={handleLogin}>
-            <div style={{ marginBottom: '1rem' }}>
+            <div style={{ marginBottom: '1.25rem' }}>
               <input
                 type="password"
                 maxLength="6"
-                className="dashboard-input"
-                style={{ textAlign: 'center', fontSize: '1.5rem', letterSpacing: '0.4em', maxWidth: '240px', margin: '0 auto' }}
+                className="minimal-input"
+                style={{ textAlign: 'center', fontSize: '1.4rem', letterSpacing: '0.35em', maxWidth: '180px', margin: '0 auto' }}
                 placeholder="••••"
                 value={pinInput}
                 onChange={(e) => {
@@ -283,28 +355,28 @@ export default function AdminDashboard({ onNavigateToWebsite }) {
                 }}
                 autoFocus
               />
-              {pinError && <p style={{ color: 'var(--plate-red)', fontSize: '0.85rem', marginTop: '0.5rem' }}>{pinError}</p>}
+              {pinError && <p style={{ color: 'var(--plate-red)', fontSize: '0.82rem', marginTop: '0.4rem' }}>{pinError}</p>}
             </div>
 
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', maxWidth: '280px', margin: '0 auto' }}>
-              <button type="submit" className="btn-solid btn-red" style={{ justifyContent: 'center' }}>
-                Unlock Dashboard
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+              <button type="submit" className="minimal-btn-primary" style={{ width: '100%' }}>
+                Unlock Console
               </button>
               <button
                 type="button"
-                className="btn-solid btn-outline"
-                style={{ justifyContent: 'center', fontSize: '0.85rem' }}
+                className="minimal-btn-ghost"
                 onClick={() => setPinInput('1234')}
+                style={{ fontSize: '0.8rem' }}
               >
-                Auto-fill default PIN: 1234
+                Use default PIN: 1234
               </button>
               <button
                 type="button"
-                className="btn-solid btn-outline"
-                style={{ justifyContent: 'center', marginTop: '0.5rem' }}
+                className="minimal-btn-secondary"
                 onClick={onNavigateToWebsite}
+                style={{ marginTop: '0.5rem' }}
               >
-                ← Back to Main Website
+                ← Back to Website
               </button>
             </div>
           </form>
@@ -315,505 +387,498 @@ export default function AdminDashboard({ onNavigateToWebsite }) {
 
   return (
     <div className="dashboard-container">
-      {/* Top Banner */}
-      <div className="dashboard-topbar">
-        <div className="dashboard-header-title">
-          <span className="badge-tag" style={{ background: 'var(--plate-red)', color: '#fff' }}>
-            OWNER & DESK CONSOLE
-          </span>
-          <h1 className="dashboard-heading">Member & Package Management</h1>
-          <p className="dashboard-sub">
-            Track member personal dossiers, active packages, end date counts, emergency contacts, and renewals.
+      {/* Minimal Top Header */}
+      <div className="minimal-topbar">
+        <div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <span className="status-indicator-dot"></span>
+            <span className="minimal-caption">FACILITY OPERATIONS & P&L</span>
+          </div>
+          <h1 className="minimal-heading">Management Command Hub</h1>
+          <p className="minimal-sub">
+            Tri-Star Fitness Indore • Sapna Sangeeta Center • Financial Ledger & Member Tracker
           </p>
         </div>
 
-        <div className="dashboard-top-actions">
-          <button
-            type="button"
-            className="btn-solid btn-outline"
-            onClick={onNavigateToWebsite}
-            style={{ padding: '0.45rem 0.95rem', fontSize: '0.85rem' }}
-          >
-            🌐 View Website
+        <div className="minimal-top-actions">
+          <button type="button" className="minimal-btn-secondary" onClick={onNavigateToWebsite}>
+            🌐 View Site
           </button>
-          <button
-            type="button"
-            className="btn-solid btn-red"
-            onClick={handleLogout}
-            style={{ padding: '0.45rem 0.95rem', fontSize: '0.85rem' }}
-          >
-            🔒 Lock Admin
+          <button type="button" className="minimal-btn-danger" onClick={handleLogout}>
+            🔒 Lock Console
           </button>
         </div>
       </div>
 
-      {/* KPI Stats Grid */}
-      <div className="admin-kpi-grid">
-        <div className="admin-kpi-card">
-          <span className="kpi-label">Active Members</span>
-          <div className="kpi-val-row">
-            <span className="kpi-val">{activeCount}</span>
-            <span className="kpi-badge" style={{ background: 'var(--plate-green)', color: '#fff' }}>
-              {members.length} Total Registered
-            </span>
+      {/* High-Level Financial & Operational KPI Row */}
+      <div className="minimal-kpi-row">
+        {/* Gross Revenue */}
+        <div className="minimal-kpi-card">
+          <span className="minimal-kpi-label">Gross Monthly Revenue</span>
+          <div className="minimal-kpi-val" style={{ color: 'var(--ink)' }}>
+            ₹{totalGrossRevenue.toLocaleString('en-IN')}
           </div>
-          <span className="kpi-sub">Active biometric privileges</span>
+          <div className="minimal-kpi-footer">
+            <span className="trend-tag-green">▲ Active Subscriptions</span>
+            <span className="minimal-muted-text">3 Inflow streams</span>
+          </div>
         </div>
 
-        <div className="admin-kpi-card">
-          <span className="kpi-label">Expiring Soon (&le; 7 Days)</span>
-          <div className="kpi-val-row">
-            <span className="kpi-val" style={{ color: 'var(--plate-yellow)' }}>
-              {expiringCount}
-            </span>
-            <span className="kpi-badge" style={{ background: 'var(--plate-yellow)', color: '#14161b' }}>
-              Renewal Due
-            </span>
+        {/* Operating Expenses */}
+        <div className="minimal-kpi-card">
+          <span className="minimal-kpi-label">Monthly Operating Expenses</span>
+          <div className="minimal-kpi-val" style={{ color: 'var(--plate-red)' }}>
+            ₹{totalMonthlyExpenses.toLocaleString('en-IN')}
           </div>
-          <span className="kpi-sub">Upcoming package renewals</span>
+          <div className="minimal-kpi-footer">
+            <span className="trend-tag-muted">Payroll, Rent & Maintenance</span>
+            <span className="minimal-muted-text">{expenses.length} Expense items</span>
+          </div>
         </div>
 
-        <div className="admin-kpi-card">
-          <span className="kpi-label">Expired Packages</span>
-          <div className="kpi-val-row">
-            <span className="kpi-val" style={{ color: 'var(--plate-red)' }}>
-              {expiredCount}
-            </span>
-            <span className="kpi-badge" style={{ background: 'var(--plate-red)', color: '#fff' }}>
-              Access Stopped
-            </span>
+        {/* Net Profit & Margin */}
+        <div className="minimal-kpi-card">
+          <span className="minimal-kpi-label">Net Operating Income</span>
+          <div className="minimal-kpi-val" style={{ color: 'var(--plate-green)' }}>
+            ₹{netProfit.toLocaleString('en-IN')}
           </div>
-          <span className="kpi-sub">Requires package extension</span>
+          <div className="minimal-kpi-footer">
+            <span className="trend-tag-green">💎 {profitMargin}% Net Margin</span>
+            <span className="minimal-muted-text">Healthy liquidity</span>
+          </div>
         </div>
 
-        <div className="admin-kpi-card">
-          <span className="kpi-label">Est. Monthly Revenue</span>
-          <div className="kpi-val-row">
-            <span className="kpi-val">₹{estMonthlyRev}</span>
+        {/* Member Expiry Status */}
+        <div className="minimal-kpi-card">
+          <span className="minimal-kpi-label">Roster Health</span>
+          <div className="minimal-kpi-val">
+            {activeCount} <span style={{ fontSize: '1.1rem', fontWeight: 600, color: 'var(--muted)' }}>/ {members.length}</span>
           </div>
-          <span className="kpi-sub">Sapna Sangeeta gym subscriptions</span>
+          <div className="minimal-kpi-footer">
+            <span className="trend-tag-yellow">⚠️ {expiringCount} Expiring Soon</span>
+            <span className="minimal-muted-text">{expiredCount} Lapsed</span>
+          </div>
         </div>
       </div>
 
-      {/* Navigation Tabs */}
-      <div className="admin-tabs-nav">
+      {/* Minimal Tabs Navigation */}
+      <div className="minimal-tabs-bar">
         <button
           type="button"
-          className={`admin-tab-btn ${activeTab === 'members' ? 'active' : ''}`}
+          className={`minimal-tab-item ${activeTab === 'financials' ? 'active' : ''}`}
+          onClick={() => setActiveTab('financials')}
+        >
+          💰 Revenue & Expense Model
+        </button>
+        <button
+          type="button"
+          className={`minimal-tab-item ${activeTab === 'members' ? 'active' : ''}`}
           onClick={() => setActiveTab('members')}
         >
-          👥 Member Directory & Package Tracker ({members.length})
+          👥 Members & Packages ({members.length})
         </button>
         <button
           type="button"
-          className={`admin-tab-btn ${activeTab === 'attendance' ? 'active' : ''}`}
+          className={`minimal-tab-item ${activeTab === 'expenses' ? 'active' : ''}`}
+          onClick={() => setActiveTab('expenses')}
+        >
+          📉 Operating Expenses Ledger ({expenses.length})
+        </button>
+        <button
+          type="button"
+          className={`minimal-tab-item ${activeTab === 'attendance' ? 'active' : ''}`}
           onClick={() => setActiveTab('attendance')}
         >
-          ⏱️ Live Attendance Stream ({attendance.length})
+          ⏱️ Attendance Feed ({attendance.length})
         </button>
         <button
           type="button"
-          className={`admin-tab-btn ${activeTab === 'equipment' ? 'active' : ''}`}
+          className={`minimal-tab-item ${activeTab === 'equipment' ? 'active' : ''}`}
           onClick={() => setActiveTab('equipment')}
         >
           🏋️ Equipment Health ({equipment.length})
         </button>
       </div>
 
-      {/* TAB 1: MEMBERS WITH TRACKING */}
-      {activeTab === 'members' && (
-        <div className="dashboard-card" style={{ marginTop: '1.25rem' }}>
-          <div className="card-header-flex">
-            <div>
-              <span className="section-label">ATHLETE DIRECTORY</span>
-              <h3 className="card-title">All Members, Active Plans & Package End Dates</h3>
-              <p className="card-desc">
-                Click <strong>"👁️ Track Profile"</strong> on any athlete to view their complete personal dossier, medical conditions, emergency contacts, and renew packages.
-              </p>
+      {/* =========================================================================
+          TAB 1: REVENUE MODEL & FINANCIAL OVERVIEW
+          ========================================================================= */}
+      {activeTab === 'financials' && (
+        <div className="minimal-section">
+          {/* Revenue & Expenses Comparison Bar */}
+          <div className="minimal-card" style={{ marginBottom: '1.5rem' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', flexWrap: 'wrap', gap: '0.75rem', marginBottom: '0.75rem' }}>
+              <div>
+                <span className="minimal-caption">P&L RATIO</span>
+                <h3 style={{ fontFamily: 'var(--font-heading)', fontSize: '1.4rem' }}>
+                  Facility Cashflow Breakdown (Oct 2026)
+                </h3>
+              </div>
+              <div style={{ display: 'flex', gap: '1rem', fontSize: '0.85rem' }}>
+                <span>Inflow: <strong style={{ color: 'var(--ink)' }}>₹{totalGrossRevenue.toLocaleString('en-IN')}</strong></span>
+                <span>Outflow: <strong style={{ color: 'var(--plate-red)' }}>₹{totalMonthlyExpenses.toLocaleString('en-IN')}</strong></span>
+                <span>Margin: <strong style={{ color: 'var(--plate-green)' }}>+{profitMargin}%</strong></span>
+              </div>
             </div>
 
-            <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', flexWrap: 'wrap' }}>
-              <input
-                type="text"
-                className="dashboard-input"
-                style={{ width: '240px' }}
-                placeholder="Search name, phone, coach, ID..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-              />
-              <button
-                type="button"
-                className="btn-solid btn-red"
-                onClick={() => setIsAddingMember(!isAddingMember)}
-              >
-                {isAddingMember ? '✕ Cancel' : '+ Enroll Member'}
-              </button>
+            {/* Proportion Bar */}
+            <div className="financial-progress-track">
+              <div
+                className="financial-progress-fill-expense"
+                style={{ width: `${Math.min((totalMonthlyExpenses / totalGrossRevenue) * 100, 100)}%` }}
+                title={`Operating Expenses: ₹${totalMonthlyExpenses.toLocaleString('en-IN')}`}
+              ></div>
+              <div
+                className="financial-progress-fill-profit"
+                style={{ width: `${Math.max(100 - (totalMonthlyExpenses / totalGrossRevenue) * 100, 0)}%` }}
+                title={`Net Profit: ₹${netProfit.toLocaleString('en-IN')}`}
+              ></div>
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.78rem', color: 'var(--muted)', marginTop: '0.4rem' }}>
+              <span>■ Operating Costs ({((totalMonthlyExpenses / totalGrossRevenue) * 100).toFixed(0)}%)</span>
+              <span style={{ color: 'var(--plate-green)', fontWeight: 700 }}>■ Retained Net Profit ({profitMargin}%)</span>
             </div>
           </div>
 
-          {/* ADD MEMBER FORM (Comprehensive Personal & Package details) */}
-          {isAddingMember && (
-            <form className="workout-form-card" onSubmit={handleAddMember}>
-              <div style={{ borderBottom: '2px solid var(--ink)', paddingBottom: '0.75rem', marginBottom: '1rem' }}>
-                <h4 style={{ fontFamily: 'var(--font-heading)', fontSize: '1.45rem', color: 'var(--ink)' }}>
-                  Enroll New Athlete & Assign Package
-                </h4>
-                <p style={{ fontSize: '0.85rem', color: 'var(--muted)' }}>
-                  Record member personal info, assigned coach, health checks, package start & end details.
-                </p>
+          {/* Two-Column Revenue & Expense Streams */}
+          <div className="minimal-two-col">
+            {/* Revenue Streams Column */}
+            <div className="minimal-card">
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                <div>
+                  <span className="minimal-caption" style={{ color: 'var(--plate-blue)' }}>INFLOW CHANNELS</span>
+                  <h3 style={{ fontFamily: 'var(--font-heading)', fontSize: '1.35rem' }}>Revenue Model</h3>
+                </div>
+                <span className="trend-tag-green">₹{totalGrossRevenue.toLocaleString('en-IN')} Total</span>
               </div>
 
-              {/* Personal Details */}
-              <span className="section-label" style={{ marginBottom: '0.5rem', display: 'block' }}>
-                1. PERSONAL & CONTACT DETAILS
-              </span>
-              <div className="form-grid">
-                <div className="form-group">
-                  <label className="form-label">Full Name *</label>
-                  <input
-                    type="text"
-                    className="dashboard-input"
-                    value={newName}
-                    onChange={(e) => setNewName(e.target.value)}
-                    placeholder="e.g. Varun Mehta"
-                    required
-                  />
+              <div className="financial-list">
+                {/* Channel 1: Memberships */}
+                <div className="financial-item">
+                  <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                    <div>
+                      <div className="financial-item-title">Member Subscriptions</div>
+                      <div className="financial-item-sub">Monthly, Quarterly Pro & Annual Elite packages</div>
+                    </div>
+                    <div style={{ textAlign: 'right' }}>
+                      <div className="financial-item-amount">₹{membershipMonthlyRevenue.toLocaleString('en-IN')}</div>
+                      <div className="financial-item-percent">{((membershipMonthlyRevenue / totalGrossRevenue) * 100).toFixed(0)}%</div>
+                    </div>
+                  </div>
+                  <div className="stream-bar-bg">
+                    <div className="stream-bar-fill" style={{ width: `${(membershipMonthlyRevenue / totalGrossRevenue) * 100}%`, background: 'var(--plate-blue)' }}></div>
+                  </div>
                 </div>
-                <div className="form-group">
-                  <label className="form-label">Phone Number *</label>
-                  <input
-                    type="tel"
-                    className="dashboard-input"
-                    value={newPhone}
-                    onChange={(e) => setNewPhone(e.target.value)}
-                    placeholder="e.g. +91 98260 99887"
-                    required
-                  />
+
+                {/* Other Revenue Channels */}
+                {revenueStreams.map((rev) => (
+                  <div key={rev.id} className="financial-item">
+                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                      <div>
+                        <div className="financial-item-title">{rev.name}</div>
+                        <div className="financial-item-sub">Recurring athlete services & retail fuel</div>
+                      </div>
+                      <div style={{ textAlign: 'right' }}>
+                        <div className="financial-item-amount">₹{rev.amount.toLocaleString('en-IN')}</div>
+                        <div className="financial-item-percent">{((rev.amount / totalGrossRevenue) * 100).toFixed(0)}%</div>
+                      </div>
+                    </div>
+                    <div className="stream-bar-bg">
+                      <div className="stream-bar-fill" style={{ width: `${(rev.amount / totalGrossRevenue) * 100}%`, background: 'var(--plate-green)' }}></div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Operating Expenses Column */}
+            <div className="minimal-card">
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                <div>
+                  <span className="minimal-caption" style={{ color: 'var(--plate-red)' }}>OUTFLOW COSTS</span>
+                  <h3 style={{ fontFamily: 'var(--font-heading)', fontSize: '1.35rem' }}>Operating Expenses</h3>
                 </div>
-                <div className="form-group">
-                  <label className="form-label">Email Address</label>
-                  <input
-                    type="email"
-                    className="dashboard-input"
-                    value={newEmail}
-                    onChange={(e) => setNewEmail(e.target.value)}
-                    placeholder="e.g. varun@gmail.com"
-                  />
-                </div>
-                <div className="form-group">
-                  <label className="form-label">Age</label>
-                  <input
-                    type="number"
-                    min="14"
-                    max="80"
-                    className="dashboard-input"
-                    value={newAge}
-                    onChange={(e) => setNewAge(e.target.value)}
-                    required
-                  />
-                </div>
-                <div className="form-group">
-                  <label className="form-label">Gender</label>
-                  <select
-                    className="dashboard-select"
-                    value={newGender}
-                    onChange={(e) => setNewGender(e.target.value)}
-                  >
-                    <option value="Male">Male</option>
-                    <option value="Female">Female</option>
-                    <option value="Other">Other</option>
-                  </select>
-                </div>
-                <div className="form-group">
-                  <label className="form-label">Blood Group</label>
-                  <select
-                    className="dashboard-select"
-                    value={newBloodGroup}
-                    onChange={(e) => setNewBloodGroup(e.target.value)}
-                  >
-                    <option value="O+">O+</option>
-                    <option value="A+">A+</option>
-                    <option value="B+">B+</option>
-                    <option value="AB+">AB+</option>
-                    <option value="O-">O-</option>
-                    <option value="A-">A-</option>
-                    <option value="B-">B-</option>
-                    <option value="AB-">AB-</option>
-                  </select>
-                </div>
+                <span className="trend-tag-red">₹{totalMonthlyExpenses.toLocaleString('en-IN')} Total</span>
               </div>
 
-              {/* Emergency Contact & Medical */}
-              <span className="section-label" style={{ margin: '1.25rem 0 0.5rem', display: 'block' }}>
-                2. EMERGENCY CONTACT & HEALTH
-              </span>
-              <div className="form-grid">
-                <div className="form-group">
-                  <label className="form-label">Emergency Contact Name</label>
-                  <input
-                    type="text"
-                    className="dashboard-input"
-                    value={newEmergencyName}
-                    onChange={(e) => setNewEmergencyName(e.target.value)}
-                    placeholder="e.g. Rajesh Mehta (Father)"
-                  />
-                </div>
-                <div className="form-group">
-                  <label className="form-label">Emergency Phone</label>
-                  <input
-                    type="tel"
-                    className="dashboard-input"
-                    value={newEmergencyPhone}
-                    onChange={(e) => setNewEmergencyPhone(e.target.value)}
-                    placeholder="+91 98260 11002"
-                  />
-                </div>
-                <div className="form-group">
-                  <label className="form-label">Assigned Coach</label>
-                  <select
-                    className="dashboard-select"
-                    value={newCoach}
-                    onChange={(e) => setNewCoach(e.target.value)}
-                  >
-                    <option value="Coach Mohit (Head Coach)">Coach Mohit (Head Coach)</option>
-                    <option value="Coach Pooja (Functional Lead)">Coach Pooja (Functional Lead)</option>
-                    <option value="Coach Rahul (Strength Specialist)">Coach Rahul (Strength Specialist)</option>
-                    <option value="General Floor Supervision">General Floor Supervision</option>
-                  </select>
-                </div>
-                <div className="form-group" style={{ gridColumn: 'span 2' }}>
-                  <label className="form-label">Medical & Injury Notes</label>
-                  <input
-                    type="text"
-                    className="dashboard-input"
-                    value={newHealthNotes}
-                    onChange={(e) => setNewHealthNotes(e.target.value)}
-                    placeholder="e.g. Lower back stiffness, Asthmatic, or None"
-                  />
-                </div>
+              <div className="financial-list">
+                {Object.entries(expensesByCategory).map(([category, amount]) => {
+                  const percent = ((amount / totalMonthlyExpenses) * 100).toFixed(0);
+                  return (
+                    <div key={category} className="financial-item">
+                      <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                        <div>
+                          <div className="financial-item-title">{category}</div>
+                          <div className="financial-item-sub">Budget allocation</div>
+                        </div>
+                        <div style={{ textAlign: 'right' }}>
+                          <div className="financial-item-amount" style={{ color: 'var(--plate-red)' }}>
+                            ₹{amount.toLocaleString('en-IN')}
+                          </div>
+                          <div className="financial-item-percent">{percent}%</div>
+                        </div>
+                      </div>
+                      <div className="stream-bar-bg">
+                        <div className="stream-bar-fill" style={{ width: `${percent}%`, background: 'var(--plate-red)' }}></div>
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
 
-              {/* Package & Payment Details */}
-              <span className="section-label" style={{ margin: '1.25rem 0 0.5rem', display: 'block' }}>
-                3. ACTIVE PACKAGE & SUBSCRIPTION END DETAILS
-              </span>
-              <div className="form-grid">
-                <div className="form-group">
-                  <label className="form-label">Package Tier</label>
-                  <select
-                    className="dashboard-select"
-                    value={newPlan}
-                    onChange={(e) => {
-                      const p = e.target.value;
-                      setNewPlan(p);
-                      if (p === 'Monthly Starter') {
-                        setNewDurationMonths(1);
-                        setNewFee(3200);
-                      } else if (p === 'Quarterly Pro') {
-                        setNewDurationMonths(3);
-                        setNewFee(8500);
-                      } else if (p === 'Annual Elite') {
-                        setNewDurationMonths(12);
-                        setNewFee(28000);
-                      }
-                    }}
-                  >
-                    <option value="Monthly Starter">Monthly Starter (1 Mo)</option>
-                    <option value="Quarterly Pro">Quarterly Pro (3 Mos)</option>
-                    <option value="Annual Elite">Annual Elite (12 Mos)</option>
-                  </select>
-                </div>
-                <div className="form-group">
-                  <label className="form-label">Package Duration (Months)</label>
-                  <input
-                    type="number"
-                    min="1"
-                    max="36"
-                    className="dashboard-input"
-                    value={newDurationMonths}
-                    onChange={(e) => setNewDurationMonths(e.target.value)}
-                    required
-                  />
-                </div>
-                <div className="form-group">
-                  <label className="form-label">Package Fee (₹)</label>
-                  <input
-                    type="number"
-                    min="0"
-                    className="dashboard-input"
-                    value={newFee}
-                    onChange={(e) => setNewFee(e.target.value)}
-                    required
-                  />
-                </div>
-                <div className="form-group">
-                  <label className="form-label">Payment Status</label>
-                  <select
-                    className="dashboard-select"
-                    value={newPaymentStatus}
-                    onChange={(e) => setNewPaymentStatus(e.target.value)}
-                  >
-                    <option value="Paid">Paid</option>
-                    <option value="Partial">Partial</option>
-                    <option value="Due">Payment Due</option>
-                  </select>
-                </div>
-                <div className="form-group">
-                  <label className="form-label">Payment Method</label>
-                  <select
-                    className="dashboard-select"
-                    value={newPaymentMethod}
-                    onChange={(e) => setNewPaymentMethod(e.target.value)}
-                  >
-                    <option value="UPI">UPI / QR Code</option>
-                    <option value="Cash">Cash</option>
-                    <option value="Card">Credit / Debit Card</option>
-                    <option value="NetBanking">Net Banking</option>
-                  </select>
-                </div>
-              </div>
-
-              <div style={{ display: 'flex', gap: '0.75rem', marginTop: '1.25rem' }}>
-                <button type="submit" className="btn-solid btn-red">
-                  Enroll & Activate Package
-                </button>
+              <div style={{ marginTop: '1.25rem', paddingTop: '1rem', borderTop: '1px solid var(--line)', textAlign: 'right' }}>
                 <button
                   type="button"
-                  className="btn-solid btn-outline"
-                  onClick={() => setIsAddingMember(false)}
+                  className="minimal-btn-primary"
+                  onClick={() => setActiveTab('expenses')}
+                  style={{ fontSize: '0.85rem' }}
                 >
-                  Cancel
+                  Manage & Log Operating Expenses →
                 </button>
               </div>
-            </form>
-          )}
+            </div>
+          </div>
+        </div>
+      )}
 
-          {/* Members Table */}
-          <div className="table-responsive" style={{ marginTop: '1.25rem' }}>
-            <table className="dashboard-table">
-              <thead>
-                <tr>
-                  <th>Member ID</th>
-                  <th>Athlete & Personal Details</th>
-                  <th>Active Package</th>
-                  <th>Package End Details</th>
-                  <th>Emergency Contact</th>
-                  <th style={{ textAlign: 'right' }}>Management</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filteredMembers.length === 0 ? (
+      {/* =========================================================================
+          TAB 2: MEMBER ROSTER WITH PERSONAL DETAILS & PACKAGE EXPIRY
+          ========================================================================= */}
+      {activeTab === 'members' && (
+        <div className="minimal-section">
+          <div className="minimal-card">
+            <div className="minimal-card-header">
+              <div>
+                <span className="minimal-caption">ATHLETE ROSTER</span>
+                <h3 style={{ fontFamily: 'var(--font-heading)', fontSize: '1.4rem' }}>
+                  Member Directory & Package Tracking
+                </h3>
+              </div>
+
+              <div style={{ display: 'flex', gap: '0.65rem', alignItems: 'center', flexWrap: 'wrap' }}>
+                <input
+                  type="text"
+                  className="minimal-input"
+                  style={{ width: '220px' }}
+                  placeholder="Search athlete, phone, coach..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                />
+                <button
+                  type="button"
+                  className="minimal-btn-primary"
+                  onClick={() => setIsAddingMember(!isAddingMember)}
+                >
+                  {isAddingMember ? '✕ Cancel' : '+ Enroll Member'}
+                </button>
+              </div>
+            </div>
+
+            {/* ENROLL MEMBER DRAWER */}
+            {isAddingMember && (
+              <form className="minimal-form-drawer" onSubmit={handleAddMember}>
+                <div style={{ marginBottom: '1rem', borderBottom: '1px solid var(--line)', paddingBottom: '0.5rem' }}>
+                  <h4 style={{ fontFamily: 'var(--font-heading)', fontSize: '1.3rem' }}>Enroll Athlete & Assign Package</h4>
+                </div>
+
+                <div className="minimal-form-grid">
+                  <div className="minimal-form-group">
+                    <label className="minimal-form-label">Full Name *</label>
+                    <input
+                      type="text"
+                      className="minimal-input"
+                      value={newName}
+                      onChange={(e) => setNewName(e.target.value)}
+                      placeholder="e.g. Varun Mehta"
+                      required
+                    />
+                  </div>
+                  <div className="minimal-form-group">
+                    <label className="minimal-form-label">Phone Number *</label>
+                    <input
+                      type="tel"
+                      className="minimal-input"
+                      value={newPhone}
+                      onChange={(e) => setNewPhone(e.target.value)}
+                      placeholder="+91 98260 99887"
+                      required
+                    />
+                  </div>
+                  <div className="minimal-form-group">
+                    <label className="minimal-form-label">Age & Gender</label>
+                    <div style={{ display: 'flex', gap: '0.5rem' }}>
+                      <input
+                        type="number"
+                        className="minimal-input"
+                        style={{ width: '70px' }}
+                        value={newAge}
+                        onChange={(e) => setNewAge(e.target.value)}
+                      />
+                      <select
+                        className="minimal-select"
+                        value={newGender}
+                        onChange={(e) => setNewGender(e.target.value)}
+                      >
+                        <option value="Male">Male</option>
+                        <option value="Female">Female</option>
+                      </select>
+                    </div>
+                  </div>
+                  <div className="minimal-form-group">
+                    <label className="minimal-form-label">Blood Group</label>
+                    <select
+                      className="minimal-select"
+                      value={newBloodGroup}
+                      onChange={(e) => setNewBloodGroup(e.target.value)}
+                    >
+                      <option value="O+">O+</option>
+                      <option value="A+">A+</option>
+                      <option value="B+">B+</option>
+                      <option value="AB+">AB+</option>
+                    </select>
+                  </div>
+                  <div className="minimal-form-group">
+                    <label className="minimal-form-label">Assigned Coach</label>
+                    <select
+                      className="minimal-select"
+                      value={newCoach}
+                      onChange={(e) => setNewCoach(e.target.value)}
+                    >
+                      <option value="Coach Mohit (Head Coach)">Coach Mohit (Head Coach)</option>
+                      <option value="Coach Pooja (Functional Lead)">Coach Pooja (Functional Lead)</option>
+                      <option value="Coach Rahul (Strength Specialist)">Coach Rahul (Strength Specialist)</option>
+                    </select>
+                  </div>
+                  <div className="minimal-form-group">
+                    <label className="minimal-form-label">Emergency Phone</label>
+                    <input
+                      type="tel"
+                      className="minimal-input"
+                      value={newEmergencyPhone}
+                      onChange={(e) => setNewEmergencyPhone(e.target.value)}
+                      placeholder="+91 98260 00112"
+                    />
+                  </div>
+                  <div className="minimal-form-group">
+                    <label className="minimal-form-label">Package Tier</label>
+                    <select
+                      className="minimal-select"
+                      value={newPlan}
+                      onChange={(e) => {
+                        const p = e.target.value;
+                        setNewPlan(p);
+                        if (p === 'Monthly Starter') {
+                          setNewDurationMonths(1);
+                          setNewFee(3200);
+                        } else if (p === 'Quarterly Pro') {
+                          setNewDurationMonths(3);
+                          setNewFee(8500);
+                        } else if (p === 'Annual Elite') {
+                          setNewDurationMonths(12);
+                          setNewFee(28000);
+                        }
+                      }}
+                    >
+                      <option value="Monthly Starter">Monthly Starter</option>
+                      <option value="Quarterly Pro">Quarterly Pro</option>
+                      <option value="Annual Elite">Annual Elite</option>
+                    </select>
+                  </div>
+                  <div className="minimal-form-group">
+                    <label className="minimal-form-label">Fee Amount (₹)</label>
+                    <input
+                      type="number"
+                      className="minimal-input"
+                      value={newFee}
+                      onChange={(e) => setNewFee(e.target.value)}
+                    />
+                  </div>
+                </div>
+
+                <div style={{ display: 'flex', gap: '0.5rem', marginTop: '1rem' }}>
+                  <button type="submit" className="minimal-btn-primary">
+                    Enroll Member
+                  </button>
+                  <button
+                    type="button"
+                    className="minimal-btn-secondary"
+                    onClick={() => setIsAddingMember(false)}
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </form>
+            )}
+
+            {/* Minimal Member Table */}
+            <div className="table-responsive" style={{ marginTop: '0.75rem' }}>
+              <table className="minimal-table">
+                <thead>
                   <tr>
-                    <td colSpan="6" style={{ textAlign: 'center', padding: '2.5rem', color: 'var(--muted)' }}>
-                      No members matched your search query.
-                    </td>
+                    <th>ID</th>
+                    <th>Athlete & Contact</th>
+                    <th>Package Plan</th>
+                    <th>Package End Details</th>
+                    <th>Assigned Coach</th>
+                    <th style={{ textAlign: 'right' }}>Actions</th>
                   </tr>
-                ) : (
-                  filteredMembers.map((m) => {
+                </thead>
+                <tbody>
+                  {filteredMembers.map((m) => {
                     const expiry = m.expiryDate || m.package?.endDate;
                     const meta = getPackageExpiryMeta(expiry);
                     return (
                       <tr key={m.id}>
+                        <td><code>{m.id}</code></td>
                         <td>
-                          <code>{m.id}</code>
-                        </td>
-                        <td>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                            <span className="table-avatar">{m.avatar || m.name.charAt(0)}</span>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+                            <span className="minimal-avatar">{m.avatar || m.name.charAt(0)}</span>
                             <div>
-                              <div style={{ fontWeight: 800, fontSize: '1rem', color: 'var(--ink)' }}>
-                                {m.name}
-                              </div>
-                              <div style={{ fontSize: '0.8rem', color: 'var(--muted)' }}>
-                                {m.gender || 'Athlete'} • {m.age ? `${m.age} yrs` : ''} • Blood: {m.bloodGroup || 'O+'}
-                              </div>
-                              <div style={{ fontSize: '0.8rem', color: 'var(--ink)' }}>
-                                📞 {m.phone}
-                              </div>
-                              <div style={{ fontSize: '0.78rem', color: 'var(--plate-blue)', fontWeight: 600 }}>
-                                Coach: {m.assignedCoach || 'Coach Mohit'}
+                              <div style={{ fontWeight: 700, color: 'var(--ink)' }}>{m.name}</div>
+                              <div style={{ fontSize: '0.78rem', color: 'var(--muted)' }}>
+                                {m.phone} • {m.bloodGroup || 'B+'}
                               </div>
                             </div>
                           </div>
                         </td>
                         <td>
-                          <div>
-                            <span
-                              className="badge-tag"
-                              style={{
-                                background: m.planAccent || 'var(--plate-blue)',
-                                color: m.plan === 'Annual Elite' ? '#14161b' : '#fff',
-                              }}
-                            >
-                              {m.plan}
-                            </span>
-                            <div style={{ fontSize: '0.8rem', marginTop: '0.25rem', fontWeight: 700 }}>
-                              ₹{m.package?.fee ? m.package.fee.toLocaleString('en-IN') : '8,500'}{' '}
-                              <span
-                                style={{
-                                  fontSize: '0.72rem',
-                                  color: m.package?.paymentStatus === 'Paid' ? 'var(--plate-green)' : 'var(--plate-red)',
-                                }}
-                              >
-                                ({m.package?.paymentStatus || 'Paid'})
-                              </span>
-                            </div>
-                            <div style={{ fontSize: '0.75rem', color: 'var(--muted)' }}>
-                              Joined: {m.joinDate}
-                            </div>
+                          <span className="tag-outline">{m.plan}</span>
+                          <div style={{ fontSize: '0.75rem', color: 'var(--muted)', marginTop: '0.2rem' }}>
+                            ₹{m.package?.fee ? m.package.fee.toLocaleString('en-IN') : '8,500'} ({m.package?.paymentStatus || 'Paid'})
                           </div>
                         </td>
                         <td>
-                          <div>
-                            <div style={{ fontWeight: 800, fontSize: '0.92rem' }}>
-                              🗓️ {expiry}
-                            </div>
-                            <div style={{ marginTop: '0.2rem' }}>
-                              <span
-                                className={`member-status-pill status-${meta.status}`}
-                              >
-                                {meta.label}
-                              </span>
-                            </div>
-                            <div style={{ fontSize: '0.75rem', color: 'var(--muted)', marginTop: '0.2rem' }}>
-                              Duration: {m.package?.durationMonths || 3} Months
-                            </div>
-                          </div>
+                          <div style={{ fontWeight: 700, fontSize: '0.85rem' }}>{expiry}</div>
+                          <span className={`status-pill-${meta.status}`}>{meta.label}</span>
                         </td>
                         <td>
-                          <div style={{ fontSize: '0.82rem' }}>
-                            <div style={{ fontWeight: 700 }}>
-                              {m.emergencyContact?.name || 'Emergency Contact'}
-                            </div>
-                            <div style={{ color: 'var(--plate-red)', fontWeight: 600 }}>
-                              📞 {m.emergencyContact?.phone || m.phone}
-                            </div>
+                          <div style={{ fontSize: '0.82rem', fontWeight: 600, color: 'var(--ink)' }}>
+                            {m.assignedCoach || 'Coach Mohit'}
                           </div>
                         </td>
                         <td style={{ textAlign: 'right' }}>
-                          <div style={{ display: 'flex', gap: '0.4rem', justifyContent: 'flex-end', flexWrap: 'wrap' }}>
+                          <div style={{ display: 'flex', gap: '0.35rem', justifyContent: 'flex-end' }}>
                             <button
                               type="button"
-                              className="btn-table-action"
-                              style={{ background: 'var(--plate-blue)', color: '#fff', border: 'none' }}
-                              title="View full personal details & package dossier"
+                              className="minimal-action-btn"
                               onClick={() => handleOpenDossier(m)}
+                              title="View full personal details & package dossier"
                             >
-                              👁️ Track Profile
+                              👁️ Track
                             </button>
                             <button
                               type="button"
-                              className="btn-table-action"
-                              title="Extend package by +1 month"
+                              className="minimal-action-btn"
                               onClick={() => handleExtendPackage(m.id, 1)}
+                              title="Extend package +1 month"
                             >
                               +1 Mo
                             </button>
                             <button
                               type="button"
-                              className="btn-table-action btn-delete-action"
-                              title="Remove member"
+                              className="minimal-action-btn-danger"
                               onClick={() => handleDeleteMember(m.id)}
+                              title="Delete member"
                             >
                               ✕
                             </button>
@@ -821,336 +886,426 @@ export default function AdminDashboard({ onNavigateToWebsite }) {
                         </td>
                       </tr>
                     );
-                  })
-                )}
-              </tbody>
-            </table>
+                  })}
+                </tbody>
+              </table>
+            </div>
           </div>
         </div>
       )}
 
-      {/* MEMBER DOSSIER / FULL TRACKING MODAL */}
-      {selectedMember && (
-        <div className="dossier-modal-backdrop" onClick={handleCloseDossier}>
-          <div className="dossier-modal-card" onClick={(e) => e.stopPropagation()}>
-            {/* Modal Header */}
-            <div className="dossier-modal-header">
-              <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                <div className="member-avatar" style={{ width: '56px', height: '56px', fontSize: '1.8rem' }}>
-                  {selectedMember.avatar || selectedMember.name.charAt(0)}
-                </div>
-                <div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
-                    <h3 style={{ fontFamily: 'var(--font-heading)', fontSize: '1.8rem', color: 'var(--ink)' }}>
-                      {selectedMember.name}
-                    </h3>
-                    <span
-                      className={`member-status-pill status-${
-                        getPackageExpiryMeta(selectedMember.expiryDate || selectedMember.package?.endDate).status
-                      }`}
+      {/* =========================================================================
+          TAB 3: OPERATING EXPENSES LEDGER
+          ========================================================================= */}
+      {activeTab === 'expenses' && (
+        <div className="minimal-section">
+          <div className="minimal-card">
+            <div className="minimal-card-header">
+              <div>
+                <span className="minimal-caption">OUTFLOW LEDGER</span>
+                <h3 style={{ fontFamily: 'var(--font-heading)', fontSize: '1.4rem' }}>
+                  Facility Operating Expenses
+                </h3>
+                <p style={{ fontSize: '0.85rem', color: 'var(--muted)', marginTop: '0.2rem' }}>
+                  Track trainer payroll, commercial rent, barbell maintenance, supplement inventory, and utility costs.
+                </p>
+              </div>
+
+              <button
+                type="button"
+                className="minimal-btn-primary"
+                onClick={() => setIsAddingExpense(!isAddingExpense)}
+              >
+                {isAddingExpense ? '✕ Cancel' : '+ Log New Expense'}
+              </button>
+            </div>
+
+            {/* Add Expense Form Drawer */}
+            {isAddingExpense && (
+              <form className="minimal-form-drawer" onSubmit={handleAddExpense}>
+                <h4 style={{ fontFamily: 'var(--font-heading)', fontSize: '1.3rem', marginBottom: '0.75rem' }}>
+                  Record Operating Expense
+                </h4>
+
+                <div className="minimal-form-grid">
+                  <div className="minimal-form-group">
+                    <label className="minimal-form-label">Expense Category</label>
+                    <select
+                      className="minimal-select"
+                      value={expCategory}
+                      onChange={(e) => setExpCategory(e.target.value)}
                     >
-                      {selectedMember.status?.toUpperCase() || 'ACTIVE'}
+                      <option value="Trainer & Coach Payroll">Trainer & Coach Payroll</option>
+                      <option value="Facility Rent & Lease">Facility Rent & Lease</option>
+                      <option value="Equipment Maintenance">Equipment Maintenance</option>
+                      <option value="Commercial Utilities & AC">Commercial Utilities & AC</option>
+                      <option value="Nutrition Inventory Restock">Nutrition Inventory Restock</option>
+                      <option value="Sanitization & Facility Upkeep">Sanitization & Facility Upkeep</option>
+                      <option value="Software & Marketing">Software & Marketing</option>
+                      <option value="General Administration">General Administration</option>
+                    </select>
+                  </div>
+
+                  <div className="minimal-form-group">
+                    <label className="minimal-form-label">Expense Description *</label>
+                    <input
+                      type="text"
+                      className="minimal-input"
+                      value={expName}
+                      onChange={(e) => setExpName(e.target.value)}
+                      placeholder="e.g. SkiErg Drive Cord & Cable Replacement"
+                      required
+                    />
+                  </div>
+
+                  <div className="minimal-form-group">
+                    <label className="minimal-form-label">Amount (₹) *</label>
+                    <input
+                      type="number"
+                      className="minimal-input"
+                      value={expAmount}
+                      onChange={(e) => setExpAmount(e.target.value)}
+                      placeholder="e.g. 12500"
+                      required
+                    />
+                  </div>
+
+                  <div className="minimal-form-group">
+                    <label className="minimal-form-label">Expense Type</label>
+                    <select
+                      className="minimal-select"
+                      value={expType}
+                      onChange={(e) => setExpType(e.target.value)}
+                    >
+                      <option value="maintenance">Maintenance & Repairs</option>
+                      <option value="recurring">Monthly Recurring</option>
+                      <option value="inventory">Inventory Stock</option>
+                      <option value="one-time">One-time Capital</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div className="minimal-form-group" style={{ marginTop: '0.75rem' }}>
+                  <label className="minimal-form-label">Vendor / Purpose Notes</label>
+                  <input
+                    type="text"
+                    className="minimal-input"
+                    value={expNotes}
+                    onChange={(e) => setExpNotes(e.target.value)}
+                    placeholder="e.g. Sourced from Concept2 authorized partner"
+                  />
+                </div>
+
+                <div style={{ display: 'flex', gap: '0.5rem', marginTop: '1rem' }}>
+                  <button type="submit" className="minimal-btn-primary">
+                    Save Expense
+                  </button>
+                  <button
+                    type="button"
+                    className="minimal-btn-secondary"
+                    onClick={() => setIsAddingExpense(false)}
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </form>
+            )}
+
+            {/* Expenses Table */}
+            <div className="table-responsive" style={{ marginTop: '0.75rem' }}>
+              <table className="minimal-table">
+                <thead>
+                  <tr>
+                    <th>Category</th>
+                    <th>Description & Notes</th>
+                    <th>Type</th>
+                    <th>Month</th>
+                    <th>Amount (₹)</th>
+                    <th style={{ textAlign: 'right' }}>Action</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {expenses.map((exp) => (
+                    <tr key={exp.id}>
+                      <td>
+                        <span className="category-pill">{exp.category}</span>
+                      </td>
+                      <td>
+                        <div style={{ fontWeight: 700, color: 'var(--ink)' }}>{exp.name}</div>
+                        <div style={{ fontSize: '0.78rem', color: 'var(--muted)' }}>{exp.notes || '—'}</div>
+                      </td>
+                      <td>
+                        <span className="type-pill">{exp.type.toUpperCase()}</span>
+                      </td>
+                      <td>{exp.date || 'Oct 2026'}</td>
+                      <td>
+                        <strong style={{ color: 'var(--plate-red)', fontSize: '0.95rem' }}>
+                          ₹{exp.amount.toLocaleString('en-IN')}
+                        </strong>
+                      </td>
+                      <td style={{ textAlign: 'right' }}>
+                        <button
+                          type="button"
+                          className="minimal-action-btn-danger"
+                          onClick={() => handleDeleteExpense(exp.id)}
+                          title="Delete expense"
+                        >
+                          ✕
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* =========================================================================
+          TAB 4: ATTENDANCE STREAM
+          ========================================================================= */}
+      {activeTab === 'attendance' && (
+        <div className="minimal-section">
+          <div className="minimal-card">
+            <div className="minimal-card-header">
+              <div>
+                <span className="minimal-caption">REAL-TIME ACCESS</span>
+                <h3 style={{ fontFamily: 'var(--font-heading)', fontSize: '1.4rem' }}>
+                  Floor Check-In Stream
+                </h3>
+              </div>
+
+              <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                <select
+                  className="minimal-select"
+                  value={manualMemberId}
+                  onChange={(e) => setManualMemberId(e.target.value)}
+                >
+                  {members.map((m) => (
+                    <option key={m.id} value={m.id}>
+                      {m.name} ({m.id})
+                    </option>
+                  ))}
+                </select>
+                <button type="button" className="minimal-btn-primary" onClick={handleManualCheckIn}>
+                  + Desk Check-In
+                </button>
+              </div>
+            </div>
+
+            <div className="table-responsive" style={{ marginTop: '0.75rem' }}>
+              <table className="minimal-table">
+                <thead>
+                  <tr>
+                    <th>Timestamp</th>
+                    <th>Member Name</th>
+                    <th>Plan Tier</th>
+                    <th>Verification</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {attendance.map((entry) => (
+                    <tr key={entry.id}>
+                      <td style={{ color: 'var(--muted)', fontSize: '0.85rem' }}>{entry.time}</td>
+                      <td><strong>{entry.memberName}</strong></td>
+                      <td><span className="tag-outline">{entry.plan}</span></td>
+                      <td style={{ color: 'var(--plate-green)', fontWeight: 700 }}>✓ Biometric Verified</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* =========================================================================
+          TAB 5: EQUIPMENT HEALTH
+          ========================================================================= */}
+      {activeTab === 'equipment' && (
+        <div className="minimal-section">
+          <div className="minimal-card">
+            <div className="minimal-card-header">
+              <div>
+                <span className="minimal-caption">ASSET MONITORING</span>
+                <h3 style={{ fontFamily: 'var(--font-heading)', fontSize: '1.4rem' }}>
+                  Gym Equipment Condition
+                </h3>
+                <p style={{ fontSize: '0.85rem', color: 'var(--muted)' }}>
+                  Click any item to cycle maintenance status between Optimal, Servicing, and Repair.
+                </p>
+              </div>
+            </div>
+
+            <div className="minimal-equipment-grid" style={{ marginTop: '1rem' }}>
+              {equipment.map((item) => (
+                <div
+                  key={item.id}
+                  className="minimal-equipment-item"
+                  onClick={() => handleToggleEquipment(item.id)}
+                  title="Click to toggle status"
+                >
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <h4 style={{ fontSize: '1rem', fontWeight: 700, color: 'var(--ink)' }}>{item.name}</h4>
+                    <span className="minimal-badge-outline" style={{ borderColor: item.accent, color: item.accent }}>
+                      {item.status}
                     </span>
                   </div>
-                  <p style={{ fontSize: '0.85rem', color: 'var(--muted)' }}>
-                    Member ID: <strong>{selectedMember.id}</strong> • Joined: {selectedMember.joinDate} • Current Streak: 🔥 {selectedMember.streakDays || 1} Days
-                  </p>
+                  <div style={{ fontSize: '0.75rem', color: 'var(--muted)', marginTop: '0.5rem' }}>
+                    Click to toggle condition status
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* =========================================================================
+          MEMBER DOSSIER MODAL (MINIMAL & COMPREHENSIVE)
+          ========================================================================= */}
+      {selectedMember && (
+        <div className="dossier-modal-backdrop" onClick={handleCloseDossier}>
+          <div className="minimal-dossier-card" onClick={(e) => e.stopPropagation()}>
+            {/* Dossier Header */}
+            <div className="minimal-dossier-header">
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem' }}>
+                <span className="minimal-avatar" style={{ width: '48px', height: '48px', fontSize: '1.4rem' }}>
+                  {selectedMember.avatar || selectedMember.name.charAt(0)}
+                </span>
+                <div>
+                  <h3 style={{ fontFamily: 'var(--font-heading)', fontSize: '1.6rem', color: 'var(--ink)' }}>
+                    {selectedMember.name}
+                  </h3>
+                  <div style={{ fontSize: '0.82rem', color: 'var(--muted)' }}>
+                    {selectedMember.id} • {selectedMember.gender || 'Athlete'} ({selectedMember.age || 26} yrs) • Blood: {selectedMember.bloodGroup || 'B+'}
+                  </div>
                 </div>
               </div>
 
               <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
                 <a
-                  href={`https://wa.me/${selectedMember.phone.replace(/[^0-9]/g, '')}?text=Hi%20${encodeURIComponent(
-                    selectedMember.name
-                  )},%20this%20is%20Tri-Star%20Fitness%20Indore.`}
+                  href={`https://wa.me/${selectedMember.phone.replace(/[^0-9]/g, '')}?text=Hi%20${encodeURIComponent(selectedMember.name)},%20this%20is%20Tri-Star%20Fitness.`}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="btn-solid btn-green"
-                  style={{ padding: '0.4rem 0.85rem', fontSize: '0.85rem' }}
+                  className="minimal-btn-whatsapp"
                 >
                   💬 WhatsApp
                 </a>
-                <button
-                  type="button"
-                  className="btn-action-delete"
-                  style={{ fontSize: '1.2rem', padding: '0.2rem 0.6rem' }}
-                  onClick={handleCloseDossier}
-                >
+                <button type="button" className="minimal-btn-secondary" onClick={handleCloseDossier}>
                   ✕
                 </button>
               </div>
             </div>
 
-            {/* Modal Body */}
-            <div className="dossier-modal-body">
-              {/* SECTION A: Personal & Medical Details */}
-              <div className="dossier-section-card">
-                <span className="section-label">ATHLETE PERSONAL & MEDICAL DOSSIER</span>
-                <div className="dossier-grid">
-                  <div className="dossier-item">
-                    <span className="dossier-label">Age & Gender</span>
-                    <span className="dossier-val">{selectedMember.age || 26} Years • {selectedMember.gender || 'Male'}</span>
+            {/* Dossier Body */}
+            <div className="minimal-dossier-body">
+              {/* Personal Details Row */}
+              <div className="minimal-dossier-section">
+                <span className="minimal-caption">PERSONAL & MEDICAL DOSSIER</span>
+                <div className="minimal-dossier-grid">
+                  <div>
+                    <div className="dossier-label-min">Contact Phone</div>
+                    <div className="dossier-val-min">{selectedMember.phone}</div>
                   </div>
-                  <div className="dossier-item">
-                    <span className="dossier-label">Blood Group</span>
-                    <span className="dossier-val">{selectedMember.bloodGroup || 'B+'}</span>
+                  <div>
+                    <div className="dossier-label-min">Email Address</div>
+                    <div className="dossier-val-min">{selectedMember.email}</div>
                   </div>
-                  <div className="dossier-item">
-                    <span className="dossier-label">Phone & Email</span>
-                    <span className="dossier-val">{selectedMember.phone}</span>
-                    <span className="dossier-sub">{selectedMember.email}</span>
+                  <div>
+                    <div className="dossier-label-min">Emergency Contact</div>
+                    <div className="dossier-val-min" style={{ color: 'var(--plate-red)' }}>
+                      {selectedMember.emergencyContact?.name} ({selectedMember.emergencyContact?.phone})
+                    </div>
                   </div>
-                  <div className="dossier-item">
-                    <span className="dossier-label">Residential Address</span>
-                    <span className="dossier-val">{selectedMember.address || 'Indore, MP'}</span>
-                  </div>
-                  <div className="dossier-item">
-                    <span className="dossier-label">Emergency Contact</span>
-                    <span className="dossier-val" style={{ color: 'var(--plate-red)', fontWeight: 800 }}>
-                      📞 {selectedMember.emergencyContact?.phone || selectedMember.phone}
-                    </span>
-                    <span className="dossier-sub">{selectedMember.emergencyContact?.name || 'Primary Contact'}</span>
-                  </div>
-                  <div className="dossier-item">
-                    <span className="dossier-label">Assigned Coach</span>
-                    <span className="dossier-val" style={{ color: 'var(--plate-blue)', fontWeight: 800 }}>
-                      🏋️ {selectedMember.assignedCoach || 'Coach Mohit (Head Coach)'}
-                    </span>
+                  <div>
+                    <div className="dossier-label-min">Assigned Coach</div>
+                    <div className="dossier-val-min" style={{ color: 'var(--plate-blue)' }}>
+                      {selectedMember.assignedCoach || 'Coach Mohit'}
+                    </div>
                   </div>
                 </div>
 
-                <div style={{ marginTop: '0.85rem', background: 'var(--card)', padding: '0.75rem 1rem', border: '1px solid var(--line)', borderRadius: '6px' }}>
-                  <span style={{ fontSize: '0.75rem', fontWeight: 800, textTransform: 'uppercase', color: 'var(--muted)', display: 'block' }}>
-                    Health & Injury Protocol
-                  </span>
-                  <p style={{ fontSize: '0.88rem', color: 'var(--ink)', marginTop: '0.2rem' }}>
-                    {selectedMember.healthNotes || 'No cardiovascular, joint, or respiratory limitations recorded.'}
-                  </p>
+                <div style={{ marginTop: '0.65rem', padding: '0.65rem', background: 'var(--bg)', borderRadius: '6px', fontSize: '0.82rem' }}>
+                  <strong style={{ color: 'var(--muted)' }}>Medical Protocol: </strong>
+                  {selectedMember.healthNotes || 'No cardiovascular, joint, or respiratory limitations.'}
                 </div>
               </div>
 
-              {/* SECTION B: Active Package & Expiry Details */}
-              <div className="dossier-section-card" style={{ borderColor: 'var(--plate-yellow)' }}>
-                <span className="section-label" style={{ color: 'var(--plate-yellow)' }}>
-                  ACTIVE PACKAGE & EXPIRATION TRACKING
-                </span>
-
+              {/* Package & Expiry Row */}
+              <div className="minimal-dossier-section">
+                <span className="minimal-caption">ACTIVE PACKAGE & END DETAILS</span>
                 {(() => {
                   const expiry = selectedMember.expiryDate || selectedMember.package?.endDate;
                   const meta = getPackageExpiryMeta(expiry);
                   return (
-                    <div style={{ marginTop: '0.5rem' }}>
-                      <div className="package-banner-box">
+                    <div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', margin: '0.5rem 0' }}>
                         <div>
-                          <span className="badge-tag" style={{ background: selectedMember.planAccent || 'var(--plate-red)', color: '#fff' }}>
+                          <strong style={{ fontSize: '1.2rem', fontFamily: 'var(--font-heading)' }}>
                             {selectedMember.plan}
-                          </span>
-                          <h4 style={{ fontFamily: 'var(--font-heading)', fontSize: '1.6rem', marginTop: '0.25rem' }}>
-                            {selectedMember.package?.durationMonths || 3} Months Subscription
-                          </h4>
+                          </strong>
+                          <div style={{ fontSize: '0.8rem', color: 'var(--muted)' }}>
+                            Duration: {selectedMember.package?.durationMonths || 3} Months • Locker: {selectedMember.package?.lockerAllocated || 'Standard'}
+                          </div>
                         </div>
 
                         <div style={{ textAlign: 'right' }}>
-                          <span className={`member-status-pill status-${meta.status}`} style={{ fontSize: '0.85rem', padding: '0.35rem 0.85rem' }}>
-                            {meta.label}
-                          </span>
-                          <div style={{ fontSize: '0.85rem', color: 'var(--muted)', marginTop: '0.25rem' }}>
-                            Package End Date: <strong>{expiry}</strong>
+                          <span className={`status-pill-${meta.status}`}>{meta.label}</span>
+                          <div style={{ fontSize: '0.8rem', color: 'var(--muted)', marginTop: '0.2rem' }}>
+                            Ends: {expiry}
                           </div>
                         </div>
                       </div>
 
-                      <div className="dossier-grid" style={{ marginTop: '0.85rem' }}>
-                        <div className="dossier-item">
-                          <span className="dossier-label">Package Fee</span>
-                          <span className="dossier-val">₹{selectedMember.package?.fee ? selectedMember.package.fee.toLocaleString('en-IN') : '8,500'}</span>
-                          <span className="dossier-sub">Status: {selectedMember.package?.paymentStatus || 'Paid'}</span>
-                        </div>
-                        <div className="dossier-item">
-                          <span className="dossier-label">Payment Mode</span>
-                          <span className="dossier-val">{selectedMember.package?.paymentMethod || 'UPI (GPay)'}</span>
-                          <span className="dossier-sub">{selectedMember.package?.invoiceNumber || 'INV-2026'}</span>
-                        </div>
-                        <div className="dossier-item">
-                          <span className="dossier-label">Locker Facility</span>
-                          <span className="dossier-val">{selectedMember.package?.lockerAllocated || 'Locker #14'}</span>
-                        </div>
-                        <div className="dossier-item">
-                          <span className="dossier-label">Package Privileges</span>
-                          <span className="dossier-val" style={{ color: 'var(--plate-green)', fontSize: '0.88rem' }}>
-                            ✓ HYROX Turf + Free Weights + Coach Review
-                          </span>
-                        </div>
-                      </div>
-
-                      {/* Instant Package Extension Buttons */}
-                      <div style={{ marginTop: '1rem', borderTop: '1px solid var(--line)', paddingTop: '0.85rem' }}>
-                        <span style={{ fontSize: '0.78rem', fontWeight: 800, textTransform: 'uppercase', color: 'var(--muted)' }}>
-                          Extend / Renew Package:
-                        </span>
-                        <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.5rem', flexWrap: 'wrap' }}>
-                          <button
-                            type="button"
-                            className="btn-solid btn-blue"
-                            style={{ padding: '0.45rem 0.95rem', fontSize: '0.85rem' }}
-                            onClick={() => handleExtendPackage(selectedMember.id, 1)}
-                          >
-                            +1 Month (₹3,200)
-                          </button>
-                          <button
-                            type="button"
-                            className="btn-solid btn-red"
-                            style={{ padding: '0.45rem 0.95rem', fontSize: '0.85rem' }}
-                            onClick={() => handleExtendPackage(selectedMember.id, 3)}
-                          >
-                            +3 Months (Quarterly Pro)
-                          </button>
-                          <button
-                            type="button"
-                            className="btn-solid btn-outline"
-                            style={{ padding: '0.45rem 0.95rem', fontSize: '0.85rem' }}
-                            onClick={() => handleExtendPackage(selectedMember.id, 12)}
-                          >
-                            +12 Months (Annual Elite)
-                          </button>
-                        </div>
+                      {/* Quick Extend Buttons */}
+                      <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.75rem', flexWrap: 'wrap' }}>
+                        <button
+                          type="button"
+                          className="minimal-btn-secondary"
+                          onClick={() => handleExtendPackage(selectedMember.id, 1)}
+                        >
+                          +1 Month Renewal
+                        </button>
+                        <button
+                          type="button"
+                          className="minimal-btn-secondary"
+                          onClick={() => handleExtendPackage(selectedMember.id, 3)}
+                        >
+                          +3 Months (Quarterly)
+                        </button>
+                        <button
+                          type="button"
+                          className="minimal-btn-secondary"
+                          onClick={() => handleExtendPackage(selectedMember.id, 12)}
+                        >
+                          +12 Months (Annual)
+                        </button>
                       </div>
                     </div>
                   );
                 })()}
               </div>
 
-              {/* SECTION C: Owner / Coach Private Notes */}
-              <div className="dossier-section-card">
-                <span className="section-label">COACH & DESK NOTES</span>
+              {/* Notes Row */}
+              <div className="minimal-dossier-section">
+                <span className="minimal-caption">COACH & DESK NOTES</span>
                 <textarea
-                  className="dashboard-input"
-                  rows="3"
-                  style={{ width: '100%', marginTop: '0.5rem', fontFamily: 'var(--font-body)', fontSize: '0.9rem' }}
+                  className="minimal-input"
+                  rows="2"
+                  style={{ width: '100%', marginTop: '0.35rem', fontSize: '0.85rem' }}
                   value={tempAdminNote}
                   onChange={(e) => setTempAdminNote(e.target.value)}
-                  placeholder="Add goals, medical precautions, or attendance notes..."
+                  placeholder="Add notes about athlete progress, diet, or preferences..."
                 />
-                <div style={{ marginTop: '0.5rem', display: 'flex', justifyContent: 'flex-end' }}>
-                  <button
-                    type="button"
-                    className="btn-solid btn-outline"
-                    style={{ padding: '0.4rem 0.95rem', fontSize: '0.85rem' }}
-                    onClick={handleSaveDossierNotes}
-                  >
+                <div style={{ marginTop: '0.5rem', textAlign: 'right' }}>
+                  <button type="button" className="minimal-btn-primary" onClick={handleSaveDossierNotes}>
                     Save Notes
                   </button>
                 </div>
               </div>
             </div>
-          </div>
-        </div>
-      )}
-
-      {/* TAB 2: LIVE ATTENDANCE */}
-      {activeTab === 'attendance' && (
-        <div className="dashboard-card" style={{ marginTop: '1.25rem' }}>
-          <div className="card-header-flex">
-            <div>
-              <span className="section-label">FRONT DESK STREAM</span>
-              <h3 className="card-title">Real-Time Check-In Stream</h3>
-              <p className="card-desc" style={{ marginTop: '0.25rem' }}>
-                Monitors members checking in on the floor and allows instant front desk verification.
-              </p>
-            </div>
-
-            <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-              <select
-                className="dashboard-select"
-                value={manualMemberId}
-                onChange={(e) => setManualMemberId(e.target.value)}
-              >
-                {members.map((m) => (
-                  <option key={m.id} value={m.id}>
-                    {m.name} ({m.id})
-                  </option>
-                ))}
-              </select>
-              <button type="button" className="btn-solid btn-green" onClick={handleManualCheckIn}>
-                + Desk Check-In
-              </button>
-            </div>
-          </div>
-
-          <div className="table-responsive" style={{ marginTop: '1.25rem' }}>
-            <table className="dashboard-table">
-              <thead>
-                <tr>
-                  <th>Timestamp</th>
-                  <th>Member Name</th>
-                  <th>Plan Tier</th>
-                  <th>Access Verification</th>
-                </tr>
-              </thead>
-              <tbody>
-                {attendance.map((entry) => (
-                  <tr key={entry.id}>
-                    <td>
-                      <span className="log-time">{entry.time}</span>
-                    </td>
-                    <td>
-                      <strong>{entry.memberName}</strong>
-                    </td>
-                    <td>
-                      <span className="badge-tag" style={{ background: 'var(--plate-blue)', color: '#fff' }}>
-                        {entry.plan}
-                      </span>
-                    </td>
-                    <td>
-                      <span style={{ color: 'var(--plate-green)', fontWeight: 700 }}>
-                        ✓ Biometric / App Verified
-                      </span>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      )}
-
-      {/* TAB 3: EQUIPMENT HEALTH */}
-      {activeTab === 'equipment' && (
-        <div className="dashboard-card" style={{ marginTop: '1.25rem' }}>
-          <div className="card-header-flex">
-            <div>
-              <span className="section-label">FACILITY ASSETS</span>
-              <h3 className="card-title">Equipment Condition & Maintenance</h3>
-              <p className="card-desc" style={{ marginTop: '0.25rem' }}>
-                Click any equipment item to cycle status between Optimal, Servicing, and Repair.
-              </p>
-            </div>
-          </div>
-
-          <div className="equipment-status-grid" style={{ marginTop: '1.25rem' }}>
-            {equipment.map((item) => (
-              <div
-                key={item.id}
-                className="equipment-status-card"
-                onClick={() => handleToggleEquipment(item.id)}
-                title="Click to cycle status"
-              >
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                  <h4 style={{ fontFamily: 'var(--font-heading)', fontSize: '1.2rem', color: 'var(--ink)' }}>
-                    {item.name}
-                  </h4>
-                  <span
-                    className="badge-tag"
-                    style={{ background: item.accent || 'var(--plate-green)', color: '#fff' }}
-                  >
-                    {item.status}
-                  </span>
-                </div>
-                <p style={{ fontSize: '0.82rem', color: 'var(--muted)', marginTop: '0.5rem' }}>
-                  Click to toggle: Optimal ➜ Scheduled ➜ Repair
-                </p>
-              </div>
-            ))}
           </div>
         </div>
       )}
