@@ -79,6 +79,84 @@ export const Badge = model('Badge', BadgeSchema);
 export const QuizQuestion = model('QuizQuestion', QuizQuestionSchema);
 export const Equipment = model('Equipment', EquipmentSchema);
 
+/* --- User / Member Schema (Real Backend Authentication & Dossier) --- */
+const UserSchema = new Schema({
+  name: { type: String, required: true },
+  email: { type: String, required: true, unique: true, lowercase: true, trim: true },
+  password: { type: String, required: true },
+  role: { type: String, enum: ['user', 'admin'], default: 'user' },
+  branch: { type: String, enum: ['sapna_sangeeta', 'manik_bagh', 'combined'], default: 'sapna_sangeeta' },
+  phone: { type: String, default: '+91 98260 00000' },
+  age: { type: Number, default: 26 },
+  gender: { type: String, default: 'Athlete' },
+  bloodGroup: { type: String, default: 'B+' },
+  address: { type: String, default: 'Indore, MP' },
+  plan: { type: String, default: 'Quarterly Pro' },
+  status: { type: String, default: 'active' },
+  expiryDate: { type: String, default: '2026-12-31' },
+  memberId: { type: String, unique: true },
+  streakDays: { type: Number, default: 0 },
+  emergencyContact: {
+    name: { type: String, default: 'Family Contact' },
+    phone: { type: String, default: '+91 98260 99999' },
+    relation: { type: String, default: 'Family' },
+  },
+  healthNotes: { type: String, default: 'Cleared for high-intensity barbell training.' },
+  coach: { type: String, default: 'Coach Mohit (Head Coach)' },
+  adminNotes: { type: String, default: '' },
+  package: {
+    startDate: { type: String, default: '2026-09-01' },
+    endDate: { type: String, default: '2026-12-31' },
+    durationMonths: { type: Number, default: 3 },
+    fee: { type: Number, default: 8500 },
+    paymentStatus: { type: String, default: 'Paid' },
+    paymentMethod: { type: String, default: 'UPI' },
+    lockerAllocated: { type: String, default: 'Standard' },
+  },
+  createdAt: { type: Date, default: Date.now },
+});
+
+/* --- Workout Log Schema --- */
+const WorkoutSchema = new Schema({
+  userEmail: { type: String, required: true, index: true },
+  exercise: { type: String, required: true },
+  sets: { type: Number, default: 3 },
+  reps: { type: Number, default: 10 },
+  weight: { type: Number, default: 60 },
+  rpe: { type: Number, default: 7 },
+  notes: { type: String, default: '' },
+  date: { type: String, default: () => new Date().toISOString().split('T')[0] },
+  createdAt: { type: Date, default: Date.now },
+});
+
+/* --- Operational Expense Schema --- */
+const ExpenseSchema = new Schema({
+  name: { type: String, required: true },
+  category: { type: String, required: true },
+  amount: { type: Number, required: true },
+  type: { type: String, default: 'maintenance' },
+  branch: { type: String, enum: ['sapna_sangeeta', 'manik_bagh', 'combined'], default: 'sapna_sangeeta' },
+  date: { type: String, default: 'Oct 2026' },
+  notes: { type: String, default: '' },
+  createdAt: { type: Date, default: Date.now },
+});
+
+/* --- Attendance Check-in Schema --- */
+const AttendanceSchema = new Schema({
+  userEmail: { type: String, default: '' },
+  memberName: { type: String, required: true },
+  branch: { type: String, default: 'Sapna Sangeeta' },
+  plan: { type: String, default: 'Quarterly Pro' },
+  time: { type: String, default: () => new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) },
+  date: { type: String, default: () => new Date().toISOString().split('T')[0] },
+  createdAt: { type: Date, default: Date.now },
+});
+
+export const User = model('User', UserSchema);
+export const Workout = model('Workout', WorkoutSchema);
+export const Expense = model('Expense', ExpenseSchema);
+export const Attendance = model('Attendance', AttendanceSchema);
+
 /** Collection registry: model + natural key + seed items */
 export const COLLECTIONS = [
   { model: Offer, key: 'id', items: seedData.offers },
@@ -110,3 +188,4 @@ export async function seedDatabase() {
 export async function dropContentCollections() {
   await Promise.all(COLLECTIONS.map(({ model }) => model.deleteMany({})));
 }
+
