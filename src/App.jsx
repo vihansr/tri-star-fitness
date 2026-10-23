@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { useContent } from './hooks/useContent.js';
 import { useRevealScan } from './hooks/useRevealScan.js';
 import Hud from './components/Hud.jsx';
@@ -15,36 +16,55 @@ import Contact from './components/Contact.jsx';
 import Footer from './components/Footer.jsx';
 import OverloadPill from './components/OverloadPill.jsx';
 import FloatingWhatsApp from './components/FloatingWhatsApp.jsx';
+import ClientDashboard from './components/ClientDashboard.jsx';
+import AdminDashboard from './components/AdminDashboard.jsx';
 
 export default function App() {
   const { data } = useContent();
+  const [currentView, setCurrentView] = useState('public'); // 'public' | 'client' | 'admin'
 
   // Feed content data so all `.reveal-init` cards are registered as deps settle.
-  useRevealScan([data]);
+  useRevealScan([data, currentView]);
 
   return (
     <>
-      <Hud />
+      <Hud currentView={currentView} onSelectView={setCurrentView} />
 
       <main id="main-content">
-        <Hero />
-        <Quiz questions={data.questions} />
-        <Offers offers={data.offers} />
-        <EquipmentLab equipment={data.equipment} />
-        <StatsCoach stats={data.stats} />
-        <Cardiac />
-        <Plans plans={data.plans} />
-        <Gamification gameIdeas={data.gameIdeas} badges={data.badges} />
-        <Testimonials testimonials={data.testimonials} />
-        <StoreInstagram />
-        <Contact />
+        {currentView === 'client' && (
+          <ClientDashboard onNavigateToWebsite={() => setCurrentView('public')} />
+        )}
+
+        {currentView === 'admin' && (
+          <AdminDashboard onNavigateToWebsite={() => setCurrentView('public')} />
+        )}
+
+        {currentView === 'public' && (
+          <>
+            <Hero />
+            <Quiz questions={data.questions} />
+            <Offers offers={data.offers} />
+            <EquipmentLab equipment={data.equipment} />
+            <StatsCoach stats={data.stats} />
+            <Cardiac />
+            <Plans plans={data.plans} />
+            <Gamification gameIdeas={data.gameIdeas} badges={data.badges} />
+            <Testimonials testimonials={data.testimonials} />
+            <StoreInstagram />
+            <Contact />
+          </>
+        )}
       </main>
 
       <Footer />
 
-      {/* Global elements */}
-      <OverloadPill />
-      <FloatingWhatsApp />
+      {/* Global floating elements */}
+      {currentView === 'public' && (
+        <>
+          <OverloadPill />
+          <FloatingWhatsApp />
+        </>
+      )}
     </>
   );
 }
