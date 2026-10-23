@@ -13,6 +13,8 @@ import mongoose from 'mongoose';
 import { connectDB, dbState } from './db.js';
 import contentRouter from './routes/content.js';
 import gymStatusRouter from './routes/gymStatus.js';
+import authRouter, { seedInitialAuthAccounts } from './routes/auth.js';
+import dashboardRouter from './routes/dashboard.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PORT = Number(process.env.PORT || 3001);
@@ -28,6 +30,8 @@ app.use(express.json());
 app.get('/api/health', (_req, res) => {
   res.json({ status: 'ok', db: dbState.mode, uptime: Math.round(process.uptime()) });
 });
+app.use('/api/auth', authRouter);
+app.use('/api/dashboard', dashboardRouter);
 app.use('/api/content', contentRouter);
 app.use('/api/gym-status', gymStatusRouter);
 
@@ -59,6 +63,7 @@ app.use((err, _req, res, _next) => {
 
 // ---- Boot -----------------------------------------------------------------
 await connectDB();
+await seedInitialAuthAccounts();
 
 app.listen(PORT, () => {
   console.log(`[server] API ready on http://localhost:${PORT} (db: ${dbState.mode})`);

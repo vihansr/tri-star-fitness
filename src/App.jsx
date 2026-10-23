@@ -19,6 +19,7 @@ import OverloadPill from './components/OverloadPill.jsx';
 import FloatingWhatsApp from './components/FloatingWhatsApp.jsx';
 import ClientDashboard from './components/ClientDashboard.jsx';
 import AdminDashboard from './components/AdminDashboard.jsx';
+import AuthModal from './components/AuthModal.jsx';
 
 
 export default function App() {
@@ -60,6 +61,17 @@ export default function App() {
 
       <Footer />
 
+      {/* Global Authentication Modal */}
+      <AuthModal
+        onLoginSuccess={(loggedInUser) => {
+          if (loggedInUser.role === 'admin') {
+            setCurrentView('admin');
+          } else {
+            setCurrentView('client');
+          }
+        }}
+      />
+
       {/* Global floating elements */}
       {currentView === 'public' && (
         <>
@@ -70,3 +82,4 @@ export default function App() {
     </>
   );
 }
+

@@ -16,11 +16,16 @@
         "test": "node src/logic.test.js"
     },
     "dependencies": {
+        "bcryptjs": "^3.0.3",
         "cors": "^2.8.5",
         "d3": "^7.9.0",
         "dotenv": "^17.2.3",
         "express": "^4.21.2",
+<<<<<<< HEAD
         "lucide-react": "^1.61.0",
+=======
+        "jsonwebtoken": "^9.0.3",
+>>>>>>> 46e4260dbb629bae0b4dec7e0f7f9a52987c0fc8
         "mongoose": "^8.9.0",
         "react": "^19.0.1",
         "react-dom": "^19.0.1",
