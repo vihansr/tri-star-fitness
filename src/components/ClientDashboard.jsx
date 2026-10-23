@@ -6,8 +6,9 @@
  * - Track personal records (PRs) in power lifts & aerobic benchmarks
  * - View active membership tier and expiry status
  */
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useGameState } from '../context/GameStateContext.jsx';
+import { useAuth } from '../context/AuthContext.jsx';
 import { burst } from '../lib/fx.js';
 import {
   getStoredMembers,
@@ -23,14 +24,49 @@ import {
 
 export default function ClientDashboard({ onNavigateToWebsite }) {
   const { addXP } = useGameState();
+  const { user: authUser, token: authToken, isAuthenticated, openAuthModal } = useAuth();
   const [members, setMembers] = useState(() => getStoredMembers());
-  const [activeMember, setActiveMemberState] = useState(() => getActiveMember());
+  const [activeMember, setActiveMemberState] = useState(() => {
+    const fallback = getActiveMember();
+    return authUser ? { ...fallback, ...authUser, name: authUser.name, plan: authUser.plan || fallback.plan } : fallback;
+  });
   const [workouts, setWorkouts] = useState(() => getStoredWorkouts());
   const [prs, setPRs] = useState(() => getStoredPRs());
 
   // Check-in state
   const [hasCheckedInToday, setHasCheckedInToday] = useState(false);
-  const [streakCount, setStreakCount] = useState(activeMember.streakDays || 14);
+  const [streakCount, setStreakCount] = useState(authUser?.streakDays || activeMember.streakDays || 14);
+
+  // Sync state when authenticated user updates
+  useEffect(() => {
+    if (authUser) {
+      setActiveMemberState((prev) => ({
+        ...prev,
+        ...authUser,
+        id: authUser.memberId || prev.id,
+        name: authUser.name,
+        branch: authUser.branch || prev.branch,
+        plan: authUser.plan || prev.plan,
+      }));
+      setStreakCount(authUser.streakDays || 14);
+    }
+  }, [authUser]);
+
+  // Fetch real workouts from backend if logged in
+  useEffect(() => {
+    if (authToken) {
+      fetch('/api/dashboard/workouts', {
+        headers: { Authorization: `Bearer ${authToken}` },
+      })
+        .then((r) => r.json())
+        .then((data) => {
+          if (data.workouts && data.workouts.length > 0) {
+            setWorkouts(data.workouts);
+          }
+        })
+        .catch(() => {});
+    }
+  }, [authToken]);
 
   // New Workout Form state
   const [exercise, setExercise] = useState('Barbell Deadlift');
@@ -71,6 +107,22 @@ export default function ClientDashboard({ onNavigateToWebsite }) {
     );
     setMembers(updated);
 
+    // Real backend attendance sync
+    if (authToken) {
+      fetch('/api/dashboard/attendance', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${authToken}`,
+        },
+        body: JSON.stringify({
+          memberName: activeMember.name,
+          plan: activeMember.plan,
+          branch: activeMember.branch === 'manik_bagh' ? 'Manik Bagh' : 'Sapna Sangeeta',
+        }),
+      }).catch(() => {});
+    }
+
     recordCheckIn(activeMember.name, activeMember.plan);
   };
 
@@ -91,6 +143,18 @@ export default function ClientDashboard({ onNavigateToWebsite }) {
     const nextWorkouts = [newWorkout, ...workouts];
     setWorkouts(nextWorkouts);
     saveStoredWorkouts(nextWorkouts);
+
+    // Real backend workout sync
+    if (authToken) {
+      fetch('/api/dashboard/workouts', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${authToken}`,
+        },
+        body: JSON.stringify(newWorkout),
+      }).catch(() => {});
+    }
 
     addXP(30, e.currentTarget);
     setIsAddingWorkout(false);
@@ -128,6 +192,64 @@ export default function ClientDashboard({ onNavigateToWebsite }) {
 
   return (
     <div className="dashboard-container">
+      {/* Cloud Authentication Notice */}
+      {!isAuthenticated ? (
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            background: 'var(--card)',
+            border: '1px solid var(--line)',
+            borderRadius: 'var(--radius-sm)',
+            padding: '0.75rem 1.25rem',
+            marginBottom: '1rem',
+            flexWrap: 'wrap',
+            gap: '0.75rem',
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+            <span>☁️</span>
+            <span style={{ fontSize: '0.85rem', color: 'var(--ink)' }}>
+              <strong>Guest Athlete Mode</strong> — Sign in or create an account to sync your PRs & attendance to the Tri-Star cloud database.
+            </span>
+          </div>
+          <button
+            type="button"
+            className="btn-solid-min"
+            onClick={() => openAuthModal('login', 'user')}
+            style={{ fontSize: '0.78rem', padding: '0.35rem 0.85rem' }}
+          >
+            Sign In / Register
+          </button>
+        </div>
+      ) : (
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            background: 'rgba(20, 160, 90, 0.08)',
+            border: '1px solid var(--plate-green)',
+            borderRadius: 'var(--radius-sm)',
+            padding: '0.65rem 1.15rem',
+            marginBottom: '1rem',
+            flexWrap: 'wrap',
+            gap: '0.5rem',
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+            <span style={{ color: 'var(--plate-green)', fontWeight: 800 }}>✓</span>
+            <span style={{ fontSize: '0.85rem', color: 'var(--ink)' }}>
+              Connected to Tri-Star Cloud as <strong>{authUser.name}</strong> ({authUser.email}) •{' '}
+              <span className="branch-tag-pill" style={{ marginLeft: '0.25rem' }}>
+                {authUser.branch === 'manik_bagh' ? '📍 Manik Bagh' : '📍 Sapna Sangeeta'}
+              </span>
+            </span>
+          </div>
+        </div>
+      )}
+
       {/* Top Header */}
       <div className="minimal-topbar">
         <div>
@@ -167,6 +289,7 @@ export default function ClientDashboard({ onNavigateToWebsite }) {
 
       {/* Member Profile Banner (Minimal) */}
       <div className="minimal-card" style={{ marginBottom: '1.5rem' }}>
+
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1.25rem' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
             <div className="minimal-avatar" style={{ width: '52px', height: '52px', fontSize: '1.5rem' }}>
