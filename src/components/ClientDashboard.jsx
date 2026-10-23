@@ -1,8 +1,3 @@
-/**
- * Member / Client Dashboard component.
- * Allows gym members to track workouts, check in daily, view attendance streak,
- * manage PR records, and view their active membership plan.
- */
 import { useState } from 'react';
 import { useGameState } from '../context/GameStateContext.jsx';
 import { burst } from '../lib/fx.js';
@@ -16,6 +11,7 @@ import {
   saveStoredPRs,
   recordCheckIn,
 } from '../lib/dashboardStorage.js';
+import MemberQRAccess from './MemberQRAccess';
 
 export default function ClientDashboard({ onNavigateToWebsite }) {
   const { addXP } = useGameState();
@@ -122,6 +118,9 @@ export default function ClientDashboard({ onNavigateToWebsite }) {
 
   return (
     <div className="dashboard-container">
+      {/* Dynamic QR Access Component at the Very Top */}
+      <MemberQRAccess memberName={activeMember.name} membershipId={activeMember.id} />
+
       {/* Top Banner / Breadcrumb */}
       <div className="dashboard-topbar">
         <div className="dashboard-header-title">

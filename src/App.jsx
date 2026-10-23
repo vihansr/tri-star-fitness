@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useContent } from './hooks/useContent.js';
 import { useRevealScan } from './hooks/useRevealScan.js';
+
 import Hud from './components/Hud.jsx';
 import Hero from './components/Hero.jsx';
 import Quiz from './components/Quiz.jsx';
@@ -18,6 +19,7 @@ import OverloadPill from './components/OverloadPill.jsx';
 import FloatingWhatsApp from './components/FloatingWhatsApp.jsx';
 import ClientDashboard from './components/ClientDashboard.jsx';
 import AdminDashboard from './components/AdminDashboard.jsx';
+
 
 export default function App() {
   const { data } = useContent();

@@ -1,11 +1,11 @@
 /**
- * Tri-Star Admin / Owner Management Dashboard.
- * Includes:
- * - Local PIN passcode gate (default: 1234)
- * - Member Personal Details tracking (Age, Gender, Blood group, Emergency contact, Medical notes, Assigned coach)
- * - Active Plan & Package End Details tracking (Start date, End date, Days remaining countdown, Payment status)
- * - Detailed Member Dossier Modal (View & Track Profile, Renew package, Edit notes)
- * - Live attendance feed & Equipment maintenance tracker
+- Tri-Star Admin / Owner Management Dashboard.
+- Includes:
+-  *Local PIN passcode gate (default: 1234)
+-  *Member Personal Details tracking (Age, Gender, Blood group, Emergency contact, Medical notes, Assigned coach)
+-  *Active Plan & Package End Details tracking (Start date, End date, Days remaining countdown, Payment status)
+-  *Detailed Member Dossier Modal (View & Track Profile, Renew package, Edit notes)
+-  *Live attendance feed & Equipment maintenance tracker
  */
 import { useState } from 'react';
 import {
@@ -102,29 +102,24 @@ export default function AdminDashboard({ onNavigateToWebsite }) {
       const baseDate = isNaN(currentExp.getTime()) ? new Date() : currentExp;
       baseDate.setMonth(baseDate.getMonth() + months);
       const newExpiryStr = baseDate.toISOString().split('T')[0];
-
       const updatedPackage = {
         ...(m.package || {}),
         endDate: newExpiryStr,
         durationMonths: (m.package?.durationMonths || 1) + months,
         paymentStatus: 'Paid',
       };
-
       const meta = getPackageExpiryMeta(newExpiryStr);
-
       const modified = {
         ...m,
         expiryDate: newExpiryStr,
         status: meta.status,
         package: updatedPackage,
       };
-
       if (selectedMember && selectedMember.id === id) {
         setSelectedMember(modified);
       }
       return modified;
     });
-
     setMembers(updated);
     saveStoredMembers(updated);
   };
@@ -142,11 +137,9 @@ export default function AdminDashboard({ onNavigateToWebsite }) {
   const handleAddMember = (e) => {
     e.preventDefault();
     if (!newName.trim() || !newPhone.trim()) return;
-
     const today = new Date();
     const expiry = new Date();
     expiry.setMonth(today.getMonth() + Number(newDurationMonths));
-
     const nextId = `TS-${String(members.length + 1).padStart(3, '0')}`;
     const accent =
       newPlan === 'Annual Elite'
@@ -154,10 +147,8 @@ export default function AdminDashboard({ onNavigateToWebsite }) {
         : newPlan === 'Quarterly Pro'
         ? 'var(--plate-red)'
         : 'var(--plate-blue)';
-
     const expiryStr = expiry.toISOString().split('T')[0];
     const todayStr = today.toISOString().split('T')[0];
-
     const newMember = {
       id: nextId,
       name: newName.trim(),
@@ -195,11 +186,9 @@ export default function AdminDashboard({ onNavigateToWebsite }) {
       },
       adminNotes: 'Newly enrolled athlete. Goal: Strength & conditioning.',
     };
-
     const nextMembers = [newMember, ...members];
     setMembers(nextMembers);
     saveStoredMembers(nextMembers);
-
     setIsAddingMember(false);
     setNewName('');
     setNewPhone('');
@@ -267,7 +256,6 @@ export default function AdminDashboard({ onNavigateToWebsite }) {
           <p style={{ color: 'var(--muted)', fontSize: '0.95rem', marginBottom: '1.5rem' }}>
             Enter your management security PIN to track member personal details, active packages, end dates, and gym health.
           </p>
-
           <form onSubmit={handleLogin}>
             <div style={{ marginBottom: '1rem' }}>
               <input
@@ -285,7 +273,6 @@ export default function AdminDashboard({ onNavigateToWebsite }) {
               />
               {pinError && <p style={{ color: 'var(--plate-red)', fontSize: '0.85rem', marginTop: '0.5rem' }}>{pinError}</p>}
             </div>
-
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', maxWidth: '280px', margin: '0 auto' }}>
               <button type="submit" className="btn-solid btn-red" style={{ justifyContent: 'center' }}>
                 Unlock Dashboard
@@ -326,7 +313,6 @@ export default function AdminDashboard({ onNavigateToWebsite }) {
             Track member personal dossiers, active packages, end date counts, emergency contacts, and renewals.
           </p>
         </div>
-
         <div className="dashboard-top-actions">
           <button
             type="button"
@@ -359,9 +345,8 @@ export default function AdminDashboard({ onNavigateToWebsite }) {
           </div>
           <span className="kpi-sub">Active biometric privileges</span>
         </div>
-
         <div className="admin-kpi-card">
-          <span className="kpi-label">Expiring Soon (&le; 7 Days)</span>
+          <span className="kpi-label">Expiring Soon (≤ 7 Days)</span>
           <div className="kpi-val-row">
             <span className="kpi-val" style={{ color: 'var(--plate-yellow)' }}>
               {expiringCount}
@@ -372,7 +357,6 @@ export default function AdminDashboard({ onNavigateToWebsite }) {
           </div>
           <span className="kpi-sub">Upcoming package renewals</span>
         </div>
-
         <div className="admin-kpi-card">
           <span className="kpi-label">Expired Packages</span>
           <div className="kpi-val-row">
@@ -385,7 +369,6 @@ export default function AdminDashboard({ onNavigateToWebsite }) {
           </div>
           <span className="kpi-sub">Requires package extension</span>
         </div>
-
         <div className="admin-kpi-card">
           <span className="kpi-label">Est. Monthly Revenue</span>
           <div className="kpi-val-row">
@@ -431,7 +414,6 @@ export default function AdminDashboard({ onNavigateToWebsite }) {
                 Click <strong>"👁️ Track Profile"</strong> on any athlete to view their complete personal dossier, medical conditions, emergency contacts, and renew packages.
               </p>
             </div>
-
             <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', flexWrap: 'wrap' }}>
               <input
                 type="text"
@@ -769,9 +751,7 @@ export default function AdminDashboard({ onNavigateToWebsite }) {
                               🗓️ {expiry}
                             </div>
                             <div style={{ marginTop: '0.2rem' }}>
-                              <span
-                                className={`member-status-pill status-${meta.status}`}
-                              >
+                              <span className={`member-status-pill status-${meta.status}`}>
                                 {meta.label}
                               </span>
                             </div>
@@ -781,38 +761,36 @@ export default function AdminDashboard({ onNavigateToWebsite }) {
                           </div>
                         </td>
                         <td>
-                          <div style={{ fontSize: '0.82rem' }}>
-                            <div style={{ fontWeight: 700 }}>
-                              {m.emergencyContact?.name || 'Emergency Contact'}
-                            </div>
-                            <div style={{ color: 'var(--plate-red)', fontWeight: 600 }}>
-                              📞 {m.emergencyContact?.phone || m.phone}
-                            </div>
+                          <div style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--ink)' }}>
+                            {m.emergencyContact?.name || 'Family Contact'}
+                          </div>
+                          <div style={{ fontSize: '0.8rem', color: 'var(--muted)' }}>
+                            📞 {m.emergencyContact?.phone || m.phone} ({m.emergencyContact?.relation || 'Family'})
                           </div>
                         </td>
                         <td style={{ textAlign: 'right' }}>
-                          <div style={{ display: 'flex', gap: '0.4rem', justifyContent: 'flex-end', flexWrap: 'wrap' }}>
+                          <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end', flexWrap: 'wrap' }}>
                             <button
                               type="button"
-                              className="btn-table-action"
-                              style={{ background: 'var(--plate-blue)', color: '#fff', border: 'none' }}
-                              title="View full personal details & package dossier"
+                              className="btn-solid btn-outline"
+                              style={{ padding: '0.35rem 0.65rem', fontSize: '0.78rem' }}
                               onClick={() => handleOpenDossier(m)}
                             >
                               👁️ Track Profile
                             </button>
                             <button
                               type="button"
-                              className="btn-table-action"
-                              title="Extend package by +1 month"
+                              className="btn-solid btn-outline"
+                              style={{ padding: '0.35rem 0.65rem', fontSize: '0.78rem' }}
                               onClick={() => handleExtendPackage(m.id, 1)}
+                              title="Extend 1 Month"
                             >
-                              +1 Mo
+                              +1M
                             </button>
                             <button
                               type="button"
-                              className="btn-table-action btn-delete-action"
-                              title="Remove member"
+                              className="btn-solid btn-outline"
+                              style={{ padding: '0.35rem 0.65rem', fontSize: '0.78rem', color: 'var(--plate-red)', borderColor: 'var(--plate-red)' }}
                               onClick={() => handleDeleteMember(m.id)}
                             >
                               ✕
@@ -829,285 +807,74 @@ export default function AdminDashboard({ onNavigateToWebsite }) {
         </div>
       )}
 
-      {/* MEMBER DOSSIER / FULL TRACKING MODAL */}
-      {selectedMember && (
-        <div className="dossier-modal-backdrop" onClick={handleCloseDossier}>
-          <div className="dossier-modal-card" onClick={(e) => e.stopPropagation()}>
-            {/* Modal Header */}
-            <div className="dossier-modal-header">
-              <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                <div className="member-avatar" style={{ width: '56px', height: '56px', fontSize: '1.8rem' }}>
-                  {selectedMember.avatar || selectedMember.name.charAt(0)}
-                </div>
-                <div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
-                    <h3 style={{ fontFamily: 'var(--font-heading)', fontSize: '1.8rem', color: 'var(--ink)' }}>
-                      {selectedMember.name}
-                    </h3>
-                    <span
-                      className={`member-status-pill status-${
-                        getPackageExpiryMeta(selectedMember.expiryDate || selectedMember.package?.endDate).status
-                      }`}
-                    >
-                      {selectedMember.status?.toUpperCase() || 'ACTIVE'}
-                    </span>
-                  </div>
-                  <p style={{ fontSize: '0.85rem', color: 'var(--muted)' }}>
-                    Member ID: <strong>{selectedMember.id}</strong> • Joined: {selectedMember.joinDate} • Current Streak: 🔥 {selectedMember.streakDays || 1} Days
-                  </p>
-                </div>
-              </div>
-
-              <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-                <a
-                  href={`https://wa.me/${selectedMember.phone.replace(/[^0-9]/g, '')}?text=Hi%20${encodeURIComponent(
-                    selectedMember.name
-                  )},%20this%20is%20Tri-Star%20Fitness%20Indore.`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="btn-solid btn-green"
-                  style={{ padding: '0.4rem 0.85rem', fontSize: '0.85rem' }}
-                >
-                  💬 WhatsApp
-                </a>
-                <button
-                  type="button"
-                  className="btn-action-delete"
-                  style={{ fontSize: '1.2rem', padding: '0.2rem 0.6rem' }}
-                  onClick={handleCloseDossier}
-                >
-                  ✕
-                </button>
-              </div>
-            </div>
-
-            {/* Modal Body */}
-            <div className="dossier-modal-body">
-              {/* SECTION A: Personal & Medical Details */}
-              <div className="dossier-section-card">
-                <span className="section-label">ATHLETE PERSONAL & MEDICAL DOSSIER</span>
-                <div className="dossier-grid">
-                  <div className="dossier-item">
-                    <span className="dossier-label">Age & Gender</span>
-                    <span className="dossier-val">{selectedMember.age || 26} Years • {selectedMember.gender || 'Male'}</span>
-                  </div>
-                  <div className="dossier-item">
-                    <span className="dossier-label">Blood Group</span>
-                    <span className="dossier-val">{selectedMember.bloodGroup || 'B+'}</span>
-                  </div>
-                  <div className="dossier-item">
-                    <span className="dossier-label">Phone & Email</span>
-                    <span className="dossier-val">{selectedMember.phone}</span>
-                    <span className="dossier-sub">{selectedMember.email}</span>
-                  </div>
-                  <div className="dossier-item">
-                    <span className="dossier-label">Residential Address</span>
-                    <span className="dossier-val">{selectedMember.address || 'Indore, MP'}</span>
-                  </div>
-                  <div className="dossier-item">
-                    <span className="dossier-label">Emergency Contact</span>
-                    <span className="dossier-val" style={{ color: 'var(--plate-red)', fontWeight: 800 }}>
-                      📞 {selectedMember.emergencyContact?.phone || selectedMember.phone}
-                    </span>
-                    <span className="dossier-sub">{selectedMember.emergencyContact?.name || 'Primary Contact'}</span>
-                  </div>
-                  <div className="dossier-item">
-                    <span className="dossier-label">Assigned Coach</span>
-                    <span className="dossier-val" style={{ color: 'var(--plate-blue)', fontWeight: 800 }}>
-                      🏋️ {selectedMember.assignedCoach || 'Coach Mohit (Head Coach)'}
-                    </span>
-                  </div>
-                </div>
-
-                <div style={{ marginTop: '0.85rem', background: 'var(--card)', padding: '0.75rem 1rem', border: '1px solid var(--line)', borderRadius: '6px' }}>
-                  <span style={{ fontSize: '0.75rem', fontWeight: 800, textTransform: 'uppercase', color: 'var(--muted)', display: 'block' }}>
-                    Health & Injury Protocol
-                  </span>
-                  <p style={{ fontSize: '0.88rem', color: 'var(--ink)', marginTop: '0.2rem' }}>
-                    {selectedMember.healthNotes || 'No cardiovascular, joint, or respiratory limitations recorded.'}
-                  </p>
-                </div>
-              </div>
-
-              {/* SECTION B: Active Package & Expiry Details */}
-              <div className="dossier-section-card" style={{ borderColor: 'var(--plate-yellow)' }}>
-                <span className="section-label" style={{ color: 'var(--plate-yellow)' }}>
-                  ACTIVE PACKAGE & EXPIRATION TRACKING
-                </span>
-
-                {(() => {
-                  const expiry = selectedMember.expiryDate || selectedMember.package?.endDate;
-                  const meta = getPackageExpiryMeta(expiry);
-                  return (
-                    <div style={{ marginTop: '0.5rem' }}>
-                      <div className="package-banner-box">
-                        <div>
-                          <span className="badge-tag" style={{ background: selectedMember.planAccent || 'var(--plate-red)', color: '#fff' }}>
-                            {selectedMember.plan}
-                          </span>
-                          <h4 style={{ fontFamily: 'var(--font-heading)', fontSize: '1.6rem', marginTop: '0.25rem' }}>
-                            {selectedMember.package?.durationMonths || 3} Months Subscription
-                          </h4>
-                        </div>
-
-                        <div style={{ textAlign: 'right' }}>
-                          <span className={`member-status-pill status-${meta.status}`} style={{ fontSize: '0.85rem', padding: '0.35rem 0.85rem' }}>
-                            {meta.label}
-                          </span>
-                          <div style={{ fontSize: '0.85rem', color: 'var(--muted)', marginTop: '0.25rem' }}>
-                            Package End Date: <strong>{expiry}</strong>
-                          </div>
-                        </div>
-                      </div>
-
-                      <div className="dossier-grid" style={{ marginTop: '0.85rem' }}>
-                        <div className="dossier-item">
-                          <span className="dossier-label">Package Fee</span>
-                          <span className="dossier-val">₹{selectedMember.package?.fee ? selectedMember.package.fee.toLocaleString('en-IN') : '8,500'}</span>
-                          <span className="dossier-sub">Status: {selectedMember.package?.paymentStatus || 'Paid'}</span>
-                        </div>
-                        <div className="dossier-item">
-                          <span className="dossier-label">Payment Mode</span>
-                          <span className="dossier-val">{selectedMember.package?.paymentMethod || 'UPI (GPay)'}</span>
-                          <span className="dossier-sub">{selectedMember.package?.invoiceNumber || 'INV-2026'}</span>
-                        </div>
-                        <div className="dossier-item">
-                          <span className="dossier-label">Locker Facility</span>
-                          <span className="dossier-val">{selectedMember.package?.lockerAllocated || 'Locker #14'}</span>
-                        </div>
-                        <div className="dossier-item">
-                          <span className="dossier-label">Package Privileges</span>
-                          <span className="dossier-val" style={{ color: 'var(--plate-green)', fontSize: '0.88rem' }}>
-                            ✓ HYROX Turf + Free Weights + Coach Review
-                          </span>
-                        </div>
-                      </div>
-
-                      {/* Instant Package Extension Buttons */}
-                      <div style={{ marginTop: '1rem', borderTop: '1px solid var(--line)', paddingTop: '0.85rem' }}>
-                        <span style={{ fontSize: '0.78rem', fontWeight: 800, textTransform: 'uppercase', color: 'var(--muted)' }}>
-                          Extend / Renew Package:
-                        </span>
-                        <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.5rem', flexWrap: 'wrap' }}>
-                          <button
-                            type="button"
-                            className="btn-solid btn-blue"
-                            style={{ padding: '0.45rem 0.95rem', fontSize: '0.85rem' }}
-                            onClick={() => handleExtendPackage(selectedMember.id, 1)}
-                          >
-                            +1 Month (₹3,200)
-                          </button>
-                          <button
-                            type="button"
-                            className="btn-solid btn-red"
-                            style={{ padding: '0.45rem 0.95rem', fontSize: '0.85rem' }}
-                            onClick={() => handleExtendPackage(selectedMember.id, 3)}
-                          >
-                            +3 Months (Quarterly Pro)
-                          </button>
-                          <button
-                            type="button"
-                            className="btn-solid btn-outline"
-                            style={{ padding: '0.45rem 0.95rem', fontSize: '0.85rem' }}
-                            onClick={() => handleExtendPackage(selectedMember.id, 12)}
-                          >
-                            +12 Months (Annual Elite)
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })()}
-              </div>
-
-              {/* SECTION C: Owner / Coach Private Notes */}
-              <div className="dossier-section-card">
-                <span className="section-label">COACH & DESK NOTES</span>
-                <textarea
-                  className="dashboard-input"
-                  rows="3"
-                  style={{ width: '100%', marginTop: '0.5rem', fontFamily: 'var(--font-body)', fontSize: '0.9rem' }}
-                  value={tempAdminNote}
-                  onChange={(e) => setTempAdminNote(e.target.value)}
-                  placeholder="Add goals, medical precautions, or attendance notes..."
-                />
-                <div style={{ marginTop: '0.5rem', display: 'flex', justifyContent: 'flex-end' }}>
-                  <button
-                    type="button"
-                    className="btn-solid btn-outline"
-                    style={{ padding: '0.4rem 0.95rem', fontSize: '0.85rem' }}
-                    onClick={handleSaveDossierNotes}
-                  >
-                    Save Notes
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* TAB 2: LIVE ATTENDANCE */}
+      {/* TAB 2: ATTENDANCE STREAM */}
       {activeTab === 'attendance' && (
         <div className="dashboard-card" style={{ marginTop: '1.25rem' }}>
           <div className="card-header-flex">
             <div>
-              <span className="section-label">FRONT DESK STREAM</span>
-              <h3 className="card-title">Real-Time Check-In Stream</h3>
-              <p className="card-desc" style={{ marginTop: '0.25rem' }}>
-                Monitors members checking in on the floor and allows instant front desk verification.
+              <span className="section-label">BIOMETRIC & MANUAL CHECK-INS</span>
+              <h3 className="card-title">Live Gym Attendance Feed</h3>
+              <p className="card-desc">
+                Record manual front-desk check-ins or review real-time member check-in history.
               </p>
             </div>
-
-            <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+            <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
               <select
                 className="dashboard-select"
+                style={{ width: '220px' }}
                 value={manualMemberId}
                 onChange={(e) => setManualMemberId(e.target.value)}
               >
                 {members.map((m) => (
                   <option key={m.id} value={m.id}>
-                    {m.name} ({m.id})
+                    {m.id} - {m.name}
                   </option>
                 ))}
               </select>
-              <button type="button" className="btn-solid btn-green" onClick={handleManualCheckIn}>
-                + Desk Check-In
+              <button
+                type="button"
+                className="btn-solid btn-red"
+                onClick={handleManualCheckIn}
+              >
+                ⚡ Check In Member
               </button>
             </div>
           </div>
-
           <div className="table-responsive" style={{ marginTop: '1.25rem' }}>
             <table className="dashboard-table">
               <thead>
                 <tr>
-                  <th>Timestamp</th>
+                  <th>Time / Date</th>
                   <th>Member Name</th>
                   <th>Plan Tier</th>
-                  <th>Access Verification</th>
+                  <th>Check-In Status</th>
                 </tr>
               </thead>
               <tbody>
-                {attendance.map((entry) => (
-                  <tr key={entry.id}>
-                    <td>
-                      <span className="log-time">{entry.time}</span>
-                    </td>
-                    <td>
-                      <strong>{entry.memberName}</strong>
-                    </td>
-                    <td>
-                      <span className="badge-tag" style={{ background: 'var(--plate-blue)', color: '#fff' }}>
-                        {entry.plan}
-                      </span>
-                    </td>
-                    <td>
-                      <span style={{ color: 'var(--plate-green)', fontWeight: 700 }}>
-                        ✓ Biometric / App Verified
-                      </span>
+                {attendance.length === 0 ? (
+                  <tr>
+                    <td colSpan="4" style={{ textAlign: 'center', padding: '2rem', color: 'var(--muted)' }}>
+                      No attendance logs recorded yet today.
                     </td>
                   </tr>
-                ))}
+                ) : (
+                  attendance.map((log, idx) => (
+                    <tr key={idx}>
+                      <td>
+                        <code>{log.time}</code> ({log.date})
+                      </td>
+                      <td style={{ fontWeight: 800, color: 'var(--ink)' }}>{log.name}</td>
+                      <td>
+                        <span className="badge-tag" style={{ background: 'var(--plate-blue)', color: '#fff' }}>
+                          {log.plan || 'Pro Member'}
+                        </span>
+                      </td>
+                      <td>
+                        <span className="member-status-pill status-active">Verified Entry</span>
+                      </td>
+                    </tr>
+                  ))
+                )}
               </tbody>
             </table>
           </div>
@@ -1119,38 +886,166 @@ export default function AdminDashboard({ onNavigateToWebsite }) {
         <div className="dashboard-card" style={{ marginTop: '1.25rem' }}>
           <div className="card-header-flex">
             <div>
-              <span className="section-label">FACILITY ASSETS</span>
-              <h3 className="card-title">Equipment Condition & Maintenance</h3>
-              <p className="card-desc" style={{ marginTop: '0.25rem' }}>
-                Click any equipment item to cycle status between Optimal, Servicing, and Repair.
+              <span className="section-label">FLOOR MAINTENANCE</span>
+              <h3 className="card-title">Equipment Status & Servicing Tracker</h3>
+              <p className="card-desc">
+                Click any equipment row to cycle status between <strong>Optimal</strong>, <strong>Servicing Scheduled</strong>, and <strong>Under Repair</strong>.
               </p>
             </div>
           </div>
+          <div className="table-responsive" style={{ marginTop: '1.25rem' }}>
+            <table className="dashboard-table">
+              <thead>
+                <tr>
+                  <th>Equipment Name</th>
+                  <th>Category</th>
+                  <th>Last Serviced</th>
+                  <th>Current Status</th>
+                  <th style={{ textAlign: 'right' }}>Action</th>
+                </tr>
+              </thead>
+              <tbody>
+                {equipment.map((eq) => (
+                  <tr key={eq.id}>
+                    <td style={{ fontWeight: 800, color: 'var(--ink)' }}>{eq.name}</td>
+                    <td>{eq.category}</td>
+                    <td>{eq.lastServiced}</td>
+                    <td>
+                      <span
+                        className="badge-tag"
+                        style={{
+                          background: eq.accent || 'var(--plate-green)',
+                          color: eq.status === 'Servicing Scheduled' ? '#14161b' : '#fff',
+                        }}
+                      >
+                        {eq.status}
+                      </span>
+                    </td>
+                    <td style={{ textAlign: 'right' }}>
+                      <button
+                        type="button"
+                        className="btn-solid btn-outline"
+                        style={{ padding: '0.35rem 0.75rem', fontSize: '0.78rem' }}
+                        onClick={() => handleToggleEquipment(eq.id)}
+                      >
+                        Cycle Status ⟳
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
 
-          <div className="equipment-status-grid" style={{ marginTop: '1.25rem' }}>
-            {equipment.map((item) => (
-              <div
-                key={item.id}
-                className="equipment-status-card"
-                onClick={() => handleToggleEquipment(item.id)}
-                title="Click to cycle status"
-              >
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                  <h4 style={{ fontFamily: 'var(--font-heading)', fontSize: '1.2rem', color: 'var(--ink)' }}>
-                    {item.name}
-                  </h4>
-                  <span
-                    className="badge-tag"
-                    style={{ background: item.accent || 'var(--plate-green)', color: '#fff' }}
-                  >
-                    {item.status}
-                  </span>
-                </div>
-                <p style={{ fontSize: '0.82rem', color: 'var(--muted)', marginTop: '0.5rem' }}>
-                  Click to toggle: Optimal ➜ Scheduled ➜ Repair
+      {/* DETAILED MEMBER DOSSIER MODAL */}
+      {selectedMember && (
+        <div className="modal-backdrop" onClick={handleCloseDossier}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '640px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', borderBottom: '2px solid var(--ink)', paddingBottom: '1rem', marginBottom: '1rem' }}>
+              <div>
+                <span className="badge-tag" style={{ background: 'var(--plate-red)', color: '#fff', marginBottom: '0.4rem', display: 'inline-block' }}>
+                  ATHLETE DOSSIER #{selectedMember.id}
+                </span>
+                <h3 style={{ fontFamily: 'var(--font-heading)', fontSize: '1.8rem', color: 'var(--ink)', margin: 0 }}>
+                  {selectedMember.name}
+                </h3>
+                <p style={{ fontSize: '0.85rem', color: 'var(--muted)', margin: '0.2rem 0 0' }}>
+                  {selectedMember.gender || 'Athlete'} • {selectedMember.age ? `${selectedMember.age} Years` : ''} • Blood Group: <strong>{selectedMember.bloodGroup || 'O+'}</strong>
                 </p>
               </div>
-            ))}
+              <button
+                type="button"
+                className="btn-solid btn-outline"
+                style={{ padding: '0.4rem 0.8rem', fontSize: '0.85rem' }}
+                onClick={handleCloseDossier}
+              >
+                ✕ Close
+              </button>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1.25rem' }}>
+              <div style={{ background: 'var(--bg)', padding: '1rem', border: '1px solid var(--border)' }}>
+                <h4 style={{ fontSize: '0.9rem', fontWeight: 800, color: 'var(--ink)', marginBottom: '0.5rem' }}>
+                  📞 Contact & Location
+                </h4>
+                <p style={{ fontSize: '0.85rem', margin: '0.2rem 0', color: 'var(--ink)' }}>Phone: <strong>{selectedMember.phone}</strong></p>
+                <p style={{ fontSize: '0.85rem', margin: '0.2rem 0', color: 'var(--ink)' }}>Email: <strong>{selectedMember.email}</strong></p>
+                <p style={{ fontSize: '0.85rem', margin: '0.2rem 0', color: 'var(--ink)' }}>Address: <strong>{selectedMember.address || 'Indore'}</strong></p>
+              </div>
+
+              <div style={{ background: 'var(--bg)', padding: '1rem', border: '1px solid var(--border)' }}>
+                <h4 style={{ fontSize: '0.9rem', fontWeight: 800, color: 'var(--plate-red)', marginBottom: '0.5rem' }}>
+                  🚨 Emergency Contact
+                </h4>
+                <p style={{ fontSize: '0.85rem', margin: '0.2rem 0', color: 'var(--ink)' }}>Name: <strong>{selectedMember.emergencyContact?.name}</strong></p>
+                <p style={{ fontSize: '0.85rem', margin: '0.2rem 0', color: 'var(--ink)' }}>Relation: <strong>{selectedMember.emergencyContact?.relation}</strong></p>
+                <p style={{ fontSize: '0.85rem', margin: '0.2rem 0', color: 'var(--ink)' }}>Phone: <strong>{selectedMember.emergencyContact?.phone}</strong></p>
+              </div>
+            </div>
+
+            <div style={{ background: 'var(--bg)', padding: '1rem', border: '1px solid var(--border)', marginBottom: '1.25rem' }}>
+              <h4 style={{ fontSize: '0.9rem', fontWeight: 800, color: 'var(--ink)', marginBottom: '0.5rem' }}>
+                🏥 Medical & Health Notes
+              </h4>
+              <p style={{ fontSize: '0.85rem', color: 'var(--ink)', margin: 0, fontStyle: 'italic' }}>
+                "{selectedMember.healthNotes || 'No specific health restrictions noted.'}"
+              </p>
+              <div style={{ marginTop: '0.75rem', fontSize: '0.82rem', color: 'var(--plate-blue)', fontWeight: 700 }}>
+                Assigned Personal Coach: {selectedMember.assignedCoach || 'Coach Mohit (Head Coach)'}
+              </div>
+            </div>
+
+            <div style={{ background: 'var(--bg)', padding: '1rem', border: '1px solid var(--border)', marginBottom: '1.25rem' }}>
+              <h4 style={{ fontSize: '0.9rem', fontWeight: 800, color: 'var(--ink)', marginBottom: '0.5rem' }}>
+                🗓️ Active Package & Expiry Tracker
+              </h4>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.75rem' }}>
+                <div>
+                  <p style={{ fontSize: '0.85rem', margin: '0.2rem 0' }}>Plan Tier: <strong>{selectedMember.plan}</strong></p>
+                  <p style={{ fontSize: '0.85rem', margin: '0.2rem 0' }}>Expiry Date: <strong>{selectedMember.expiryDate || selectedMember.package?.endDate}</strong></p>
+                  <p style={{ fontSize: '0.85rem', margin: '0.2rem 0' }}>Payment Status: <strong style={{ color: 'var(--plate-green)' }}>{selectedMember.package?.paymentStatus || 'Paid'} (₹{selectedMember.package?.fee || 8500})</strong></p>
+                </div>
+                <div style={{ display: 'flex', gap: '0.5rem' }}>
+                  <button
+                    type="button"
+                    className="btn-solid btn-red"
+                    style={{ padding: '0.4rem 0.75rem', fontSize: '0.8rem' }}
+                    onClick={() => handleExtendPackage(selectedMember.id, 1)}
+                  >
+                    +1 Month Renewal
+                  </button>
+                  <button
+                    type="button"
+                    className="btn-solid btn-outline"
+                    style={{ padding: '0.4rem 0.75rem', fontSize: '0.8rem' }}
+                    onClick={() => handleExtendPackage(selectedMember.id, 3)}
+                  >
+                    +3 Months Renewal
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <div style={{ marginBottom: '1rem' }}>
+              <label className="form-label">Admin Private Notes & Goals</label>
+              <textarea
+                className="dashboard-input"
+                rows="3"
+                value={tempAdminNote}
+                onChange={(e) => setTempAdminNote(e.target.value)}
+                placeholder="Add private desk notes regarding this athlete..."
+              />
+              <button
+                type="button"
+                className="btn-solid btn-outline"
+                style={{ marginTop: '0.5rem', padding: '0.4rem 0.9rem', fontSize: '0.82rem' }}
+                onClick={handleSaveDossierNotes}
+              >
+                Save Admin Notes
+              </button>
+            </div>
           </div>
         </div>
       )}
