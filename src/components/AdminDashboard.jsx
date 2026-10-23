@@ -1,15 +1,23 @@
 /**
  * Tri-Star Admin / Owner Management Dashboard.
+ * Multi-Center Operations:
+ * - 🌐 Combined (All Centers)
+ * - 📍 Sapna Sangeeta (Flagship Center)
+ * - 📍 Manik Bagh (South Indore Center)
+ *
  * Minimalist, high-performance UI featuring:
- * - Revenue Model (Subscriptions, 1-on-1 PT Coaching, Nutrition Store)
- * - Operating Expenses (Trainer Payroll, Rent, Equipment Maintenance, Power/AC, Inventory)
- * - Net Profit & Margin Analytics
+ * - Multi-Branch Revenue Model (Subscriptions, 1-on-1 PT Coaching, Nutrition Store)
+ * - Operating Expenses Ledger tagged by branch (Trainer Payroll, Rent, Equipment Maintenance, Power/AC)
+ * - Net Profit & Margin Analytics by Branch & Combined
  * - Member Personal Details Tracking & Package Expiry Countdown
  * - Member Dossier Modal (Track, WhatsApp, Renew)
  * - Attendance Feed & Equipment Health Monitor
  */
 import { useState } from 'react';
 import {
+  BRANCHES,
+  getActiveBranch,
+  setActiveBranch,
   getStoredMembers,
   saveStoredMembers,
   getStoredExpenses,
@@ -30,6 +38,9 @@ export default function AdminDashboard({ onNavigateToWebsite }) {
   const [pinInput, setPinInput] = useState('');
   const [pinError, setPinError] = useState('');
 
+  // Branch Selection State: 'combined' | 'sapna_sangeeta' | 'manik_bagh'
+  const [selectedBranch, setSelectedBranchState] = useState(() => getActiveBranch());
+
   // Core Data State
   const [members, setMembers] = useState(() => getStoredMembers());
   const [expenses, setExpenses] = useState(() => getStoredExpenses());
@@ -49,6 +60,7 @@ export default function AdminDashboard({ onNavigateToWebsite }) {
 
   // New Expense Form State
   const [expCategory, setExpCategory] = useState('Equipment Maintenance');
+  const [expBranch, setExpBranch] = useState('sapna_sangeeta');
   const [expName, setExpName] = useState('');
   const [expAmount, setExpAmount] = useState('');
   const [expType, setExpType] = useState('maintenance');
@@ -58,6 +70,7 @@ export default function AdminDashboard({ onNavigateToWebsite }) {
   const [newName, setNewName] = useState('');
   const [newPhone, setNewPhone] = useState('');
   const [newEmail, setNewEmail] = useState('');
+  const [newBranch, setNewBranch] = useState('sapna_sangeeta');
   const [newAge, setNewAge] = useState(26);
   const [newGender, setNewGender] = useState('Male');
   const [newBloodGroup, setNewBloodGroup] = useState('B+');
@@ -75,6 +88,11 @@ export default function AdminDashboard({ onNavigateToWebsite }) {
 
   // Manual Check-in State
   const [manualMemberId, setManualMemberId] = useState(members[0]?.id || '');
+
+  const handleBranchChange = (branchId) => {
+    setSelectedBranchState(branchId);
+    setActiveBranch(branchId);
+  };
 
   // Auth Handling
   const handleLogin = (e) => {
@@ -163,8 +181,17 @@ export default function AdminDashboard({ onNavigateToWebsite }) {
     e.preventDefault();
     if (!expName.trim() || !expAmount) return;
 
+    const branchLabel =
+      expBranch === 'sapna_sangeeta'
+        ? 'Sapna Sangeeta'
+        : expBranch === 'manik_bagh'
+        ? 'Manik Bagh'
+        : 'Combined (HQ / Shared)';
+
     const newExp = {
       id: `exp-${Date.now()}`,
+      branch: expBranch,
+      branchLabel,
       category: expCategory,
       name: expName.trim(),
       amount: Number(expAmount),
@@ -209,6 +236,13 @@ export default function AdminDashboard({ onNavigateToWebsite }) {
     const expiryStr = expiry.toISOString().split('T')[0];
     const todayStr = today.toISOString().split('T')[0];
 
+    const branchLabel =
+      newBranch === 'sapna_sangeeta'
+        ? 'Sapna Sangeeta'
+        : newBranch === 'manik_bagh'
+        ? 'Manik Bagh'
+        : 'All-Access (Combined)';
+
     const newMember = {
       id: nextId,
       name: newName.trim(),
@@ -217,6 +251,8 @@ export default function AdminDashboard({ onNavigateToWebsite }) {
       age: Number(newAge),
       gender: newGender,
       bloodGroup: newBloodGroup,
+      branch: newBranch,
+      branchLabel,
       address: newAddress.trim() || 'Indore',
       emergencyContact: {
         name: newEmergencyName.trim() || 'Family Contact',
@@ -262,7 +298,9 @@ export default function AdminDashboard({ onNavigateToWebsite }) {
   const handleManualCheckIn = () => {
     const mem = members.find((m) => m.id === manualMemberId);
     if (!mem) return;
-    const updatedLogs = recordCheckIn(mem.name, mem.plan);
+    const branchName =
+      selectedBranch === 'manik_bagh' ? 'Manik Bagh' : 'Sapna Sangeeta';
+    const updatedLogs = recordCheckIn(mem.name, mem.plan, branchName);
     setAttendance(updatedLogs);
   };
 
@@ -284,8 +322,37 @@ export default function AdminDashboard({ onNavigateToWebsite }) {
     saveEquipmentStatus(updated);
   };
 
-  // Filter Members
-  const filteredMembers = members.filter((m) => {
+  // --------------------------------------------------------------------------
+  // BRANCH FILTERING LOGIC
+  // --------------------------------------------------------------------------
+  const branchMembers = members.filter((m) => {
+    if (selectedBranch === 'combined') return true;
+    return m.branch === selectedBranch || m.branch === 'combined';
+  });
+
+  const branchExpenses = expenses.filter((e) => {
+    if (selectedBranch === 'combined') return true;
+    return e.branch === selectedBranch || e.branch === 'combined';
+  });
+
+  const branchRevenueStreams = revenueStreams.filter((r) => {
+    if (selectedBranch === 'combined') return true;
+    return r.branch === selectedBranch || r.branch === 'combined';
+  });
+
+  const branchAttendance = attendance.filter((a) => {
+    if (selectedBranch === 'combined') return true;
+    const targetLabel = selectedBranch === 'manik_bagh' ? 'Manik Bagh' : 'Sapna Sangeeta';
+    return !a.branch || a.branch === targetLabel;
+  });
+
+  const branchEquipment = equipment.filter((eq) => {
+    if (selectedBranch === 'combined') return true;
+    return eq.branch === selectedBranch;
+  });
+
+  // Filter Members with search query
+  const filteredMembers = branchMembers.filter((m) => {
     const q = searchQuery.toLowerCase();
     return (
       m.name.toLowerCase().includes(q) ||
@@ -296,32 +363,39 @@ export default function AdminDashboard({ onNavigateToWebsite }) {
     );
   });
 
-  // Financial Calculations
-  const activeCount = members.filter((m) => m.status === 'active').length;
-  const expiringCount = members.filter((m) => m.status === 'expiring').length;
-  const expiredCount = members.filter((m) => m.status === 'expired').length;
+  // Financial Calculations by Selected Branch
+  const activeCount = branchMembers.filter((m) => m.status === 'active').length;
+  const expiringCount = branchMembers.filter((m) => m.status === 'expiring').length;
+  const expiredCount = branchMembers.filter((m) => m.status === 'expired').length;
 
-  // Recurring monthly membership revenue projected across active 140+ athlete roster
+  // Scale factor based on center
+  const memberScaleMultiplier =
+    selectedBranch === 'sapna_sangeeta'
+      ? 28 // Sapna Sangeeta base (~85 members)
+      : selectedBranch === 'manik_bagh'
+      ? 18 // Manik Bagh base (~55 members)
+      : 46; // Combined (140+ members)
+
   const membershipMonthlyRevenue = Math.round(
-    members.reduce((sum, m) => {
+    branchMembers.reduce((sum, m) => {
       const fee = m.package?.fee || 8500;
       const duration = m.package?.durationMonths || 3;
       return sum + fee / duration;
-    }, 0) * 46
+    }, 0) * memberScaleMultiplier
   );
 
-  const additionalRevenue = revenueStreams.reduce((sum, r) => sum + r.amount, 0);
+  const additionalRevenue = branchRevenueStreams.reduce((sum, r) => sum + r.amount, 0);
   const totalGrossRevenue = membershipMonthlyRevenue + additionalRevenue;
 
   // Expenses Calculation
-  const totalMonthlyExpenses = expenses.reduce((sum, e) => sum + e.amount, 0);
+  const totalMonthlyExpenses = branchExpenses.reduce((sum, e) => sum + e.amount, 0);
 
   // Net Profit & Margin
   const netProfit = totalGrossRevenue - totalMonthlyExpenses;
   const profitMargin = totalGrossRevenue > 0 ? ((netProfit / totalGrossRevenue) * 100).toFixed(1) : 0;
 
   // Expenses grouped by category for breakdown
-  const expensesByCategory = expenses.reduce((acc, curr) => {
+  const expensesByCategory = branchExpenses.reduce((acc, curr) => {
     acc[curr.category] = (acc[curr.category] || 0) + curr.amount;
     return acc;
   }, {});
@@ -337,7 +411,7 @@ export default function AdminDashboard({ onNavigateToWebsite }) {
             Tri-Star Console
           </h2>
           <p style={{ color: 'var(--muted)', fontSize: '0.88rem', marginBottom: '1.5rem', lineHeight: 1.4 }}>
-            Enter your management PIN to access facility finances, operating expenses, and member records.
+            Enter your management PIN to access facility finances, operating expenses, and multi-center records.
           </p>
 
           <form onSubmit={handleLogin}>
@@ -392,11 +466,11 @@ export default function AdminDashboard({ onNavigateToWebsite }) {
         <div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
             <span className="status-indicator-dot"></span>
-            <span className="minimal-caption">FACILITY OPERATIONS & P&L</span>
+            <span className="minimal-caption">MULTI-CENTER OPERATIONS</span>
           </div>
           <h1 className="minimal-heading">Management Command Hub</h1>
           <p className="minimal-sub">
-            Tri-Star Fitness Indore • Sapna Sangeeta Center • Financial Ledger & Member Tracker
+            Tri-Star Fitness Indore • Sapna Sangeeta & Manik Bagh Centers • Financial Ledger & Member Tracker
           </p>
         </div>
 
@@ -410,52 +484,74 @@ export default function AdminDashboard({ onNavigateToWebsite }) {
         </div>
       </div>
 
-      {/* High-Level Financial & Operational KPI Row */}
+      {/* BRANCH SELECTOR SEGMENTED CONTROL */}
+      <div className="branch-selector-wrapper">
+        <span className="branch-selector-label">SELECT CENTER:</span>
+        <div className="branch-segmented-pills" role="tablist" aria-label="Gym Center Switcher">
+          {BRANCHES.map((b) => (
+            <button
+              key={b.id}
+              type="button"
+              className={`branch-pill-btn ${selectedBranch === b.id ? 'active' : ''}`}
+              onClick={() => handleBranchChange(b.id)}
+              role="tab"
+              aria-selected={selectedBranch === b.id}
+            >
+              <span>{b.icon}</span>
+              <span>{b.name}</span>
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* High-Level Financial & Operational KPI Row (Filtered by Center) */}
       <div className="minimal-kpi-row">
         {/* Gross Revenue */}
         <div className="minimal-kpi-card">
-          <span className="minimal-kpi-label">Gross Monthly Revenue</span>
+          <span className="minimal-kpi-label">
+            Gross Revenue ({selectedBranch === 'combined' ? 'Both Centers' : selectedBranch === 'sapna_sangeeta' ? 'Sapna Sangeeta' : 'Manik Bagh'})
+          </span>
           <div className="minimal-kpi-val" style={{ color: 'var(--ink)' }}>
             ₹{totalGrossRevenue.toLocaleString('en-IN')}
           </div>
           <div className="minimal-kpi-footer">
             <span className="trend-tag-green">▲ Active Subscriptions</span>
-            <span className="minimal-muted-text">3 Inflow streams</span>
+            <span className="minimal-muted-text">{branchRevenueStreams.length + 1} Inflow channels</span>
           </div>
         </div>
 
         {/* Operating Expenses */}
         <div className="minimal-kpi-card">
-          <span className="minimal-kpi-label">Monthly Operating Expenses</span>
+          <span className="minimal-kpi-label">Operating Expenses</span>
           <div className="minimal-kpi-val" style={{ color: 'var(--plate-red)' }}>
             ₹{totalMonthlyExpenses.toLocaleString('en-IN')}
           </div>
           <div className="minimal-kpi-footer">
-            <span className="trend-tag-muted">Payroll, Rent & Maintenance</span>
-            <span className="minimal-muted-text">{expenses.length} Expense items</span>
+            <span className="trend-tag-muted">Payroll, Rent & Equipment</span>
+            <span className="minimal-muted-text">{branchExpenses.length} Expense line items</span>
           </div>
         </div>
 
         {/* Net Profit & Margin */}
         <div className="minimal-kpi-card">
-          <span className="minimal-kpi-label">Net Operating Income</span>
+          <span className="minimal-kpi-label">Net Operating Profit</span>
           <div className="minimal-kpi-val" style={{ color: 'var(--plate-green)' }}>
             ₹{netProfit.toLocaleString('en-IN')}
           </div>
           <div className="minimal-kpi-footer">
             <span className="trend-tag-green">💎 {profitMargin}% Net Margin</span>
-            <span className="minimal-muted-text">Healthy liquidity</span>
+            <span className="minimal-muted-text">High liquidity</span>
           </div>
         </div>
 
         {/* Member Expiry Status */}
         <div className="minimal-kpi-card">
-          <span className="minimal-kpi-label">Roster Health</span>
+          <span className="minimal-kpi-label">Active Athlete Roster</span>
           <div className="minimal-kpi-val">
-            {activeCount} <span style={{ fontSize: '1.1rem', fontWeight: 600, color: 'var(--muted)' }}>/ {members.length}</span>
+            {activeCount} <span style={{ fontSize: '1.1rem', fontWeight: 600, color: 'var(--muted)' }}>/ {branchMembers.length}</span>
           </div>
           <div className="minimal-kpi-footer">
-            <span className="trend-tag-yellow">⚠️ {expiringCount} Expiring Soon</span>
+            <span className="trend-tag-yellow">⚠️ {expiringCount} Renewal Due</span>
             <span className="minimal-muted-text">{expiredCount} Lapsed</span>
           </div>
         </div>
@@ -475,49 +571,53 @@ export default function AdminDashboard({ onNavigateToWebsite }) {
           className={`minimal-tab-item ${activeTab === 'members' ? 'active' : ''}`}
           onClick={() => setActiveTab('members')}
         >
-          👥 Members & Packages ({members.length})
+          👥 Members & Packages ({branchMembers.length})
         </button>
         <button
           type="button"
           className={`minimal-tab-item ${activeTab === 'expenses' ? 'active' : ''}`}
           onClick={() => setActiveTab('expenses')}
         >
-          📉 Operating Expenses Ledger ({expenses.length})
+          📉 Operating Expenses Ledger ({branchExpenses.length})
         </button>
         <button
           type="button"
           className={`minimal-tab-item ${activeTab === 'attendance' ? 'active' : ''}`}
           onClick={() => setActiveTab('attendance')}
         >
-          ⏱️ Attendance Feed ({attendance.length})
+          ⏱️ Attendance Feed ({branchAttendance.length})
         </button>
         <button
           type="button"
           className={`minimal-tab-item ${activeTab === 'equipment' ? 'active' : ''}`}
           onClick={() => setActiveTab('equipment')}
         >
-          🏋️ Equipment Health ({equipment.length})
+          🏋️ Equipment Health ({branchEquipment.length})
         </button>
       </div>
 
       {/* =========================================================================
-          TAB 1: REVENUE MODEL & FINANCIAL OVERVIEW
+          TAB 1: REVENUE MODEL & FINANCIAL OVERVIEW (FILTERED BY BRANCH)
           ========================================================================= */}
       {activeTab === 'financials' && (
         <div className="minimal-section">
-          {/* Revenue & Expenses Comparison Bar */}
+          {/* Comparison Progress Bar */}
           <div className="minimal-card" style={{ marginBottom: '1.5rem' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', flexWrap: 'wrap', gap: '0.75rem', marginBottom: '0.75rem' }}>
               <div>
-                <span className="minimal-caption">P&L RATIO</span>
+                <span className="minimal-caption">P&L BREAKDOWN</span>
                 <h3 style={{ fontFamily: 'var(--font-heading)', fontSize: '1.4rem' }}>
-                  Facility Cashflow Breakdown (Oct 2026)
+                  {selectedBranch === 'combined'
+                    ? 'Combined Cashflow Ratio (Both Centers)'
+                    : selectedBranch === 'sapna_sangeeta'
+                    ? 'Sapna Sangeeta Center Cashflow Ratio'
+                    : 'Manik Bagh Center Cashflow Ratio'}
                 </h3>
               </div>
               <div style={{ display: 'flex', gap: '1rem', fontSize: '0.85rem' }}>
                 <span>Inflow: <strong style={{ color: 'var(--ink)' }}>₹{totalGrossRevenue.toLocaleString('en-IN')}</strong></span>
                 <span>Outflow: <strong style={{ color: 'var(--plate-red)' }}>₹{totalMonthlyExpenses.toLocaleString('en-IN')}</strong></span>
-                <span>Margin: <strong style={{ color: 'var(--plate-green)' }}>+{profitMargin}%</strong></span>
+                <span>Profit: <strong style={{ color: 'var(--plate-green)' }}>+₹{netProfit.toLocaleString('en-IN')} ({profitMargin}%)</strong></span>
               </div>
             </div>
 
@@ -540,9 +640,9 @@ export default function AdminDashboard({ onNavigateToWebsite }) {
             </div>
           </div>
 
-          {/* Two-Column Revenue & Expense Streams */}
+          {/* Two-Column Streams */}
           <div className="minimal-two-col">
-            {/* Revenue Streams Column */}
+            {/* Inflow Channels */}
             <div className="minimal-card">
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
                 <div>
@@ -553,12 +653,12 @@ export default function AdminDashboard({ onNavigateToWebsite }) {
               </div>
 
               <div className="financial-list">
-                {/* Channel 1: Memberships */}
+                {/* Subscriptions */}
                 <div className="financial-item">
                   <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                     <div>
                       <div className="financial-item-title">Member Subscriptions</div>
-                      <div className="financial-item-sub">Monthly, Quarterly Pro & Annual Elite packages</div>
+                      <div className="financial-item-sub">Quarterly, Annual & Monthly Packages</div>
                     </div>
                     <div style={{ textAlign: 'right' }}>
                       <div className="financial-item-amount">₹{membershipMonthlyRevenue.toLocaleString('en-IN')}</div>
@@ -570,13 +670,13 @@ export default function AdminDashboard({ onNavigateToWebsite }) {
                   </div>
                 </div>
 
-                {/* Other Revenue Channels */}
-                {revenueStreams.map((rev) => (
+                {/* Additional Streams */}
+                {branchRevenueStreams.map((rev) => (
                   <div key={rev.id} className="financial-item">
                     <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                       <div>
                         <div className="financial-item-title">{rev.name}</div>
-                        <div className="financial-item-sub">Recurring athlete services & retail fuel</div>
+                        <div className="financial-item-sub">Coaching, Nutrition Fuel & Corporate</div>
                       </div>
                       <div style={{ textAlign: 'right' }}>
                         <div className="financial-item-amount">₹{rev.amount.toLocaleString('en-IN')}</div>
@@ -591,7 +691,7 @@ export default function AdminDashboard({ onNavigateToWebsite }) {
               </div>
             </div>
 
-            {/* Operating Expenses Column */}
+            {/* Outflow Costs */}
             <div className="minimal-card">
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
                 <div>
@@ -633,7 +733,7 @@ export default function AdminDashboard({ onNavigateToWebsite }) {
                   onClick={() => setActiveTab('expenses')}
                   style={{ fontSize: '0.85rem' }}
                 >
-                  Manage & Log Operating Expenses →
+                  Manage Branch Expenses Ledger →
                 </button>
               </div>
             </div>
@@ -642,14 +742,20 @@ export default function AdminDashboard({ onNavigateToWebsite }) {
       )}
 
       {/* =========================================================================
-          TAB 2: MEMBER ROSTER WITH PERSONAL DETAILS & PACKAGE EXPIRY
+          TAB 2: MEMBER ROSTER WITH BRANCH TAGS
           ========================================================================= */}
       {activeTab === 'members' && (
         <div className="minimal-section">
           <div className="minimal-card">
             <div className="minimal-card-header">
               <div>
-                <span className="minimal-caption">ATHLETE ROSTER</span>
+                <span className="minimal-caption">
+                  {selectedBranch === 'combined'
+                    ? 'ALL CENTERS ROSTER'
+                    : selectedBranch === 'sapna_sangeeta'
+                    ? 'SAPNA SANGEETA ROSTER'
+                    : 'MANIK BAGH ROSTER'}
+                </span>
                 <h3 style={{ fontFamily: 'var(--font-heading)', fontSize: '1.4rem' }}>
                   Member Directory & Package Tracking
                 </h3>
@@ -678,7 +784,7 @@ export default function AdminDashboard({ onNavigateToWebsite }) {
             {isAddingMember && (
               <form className="minimal-form-drawer" onSubmit={handleAddMember}>
                 <div style={{ marginBottom: '1rem', borderBottom: '1px solid var(--line)', paddingBottom: '0.5rem' }}>
-                  <h4 style={{ fontFamily: 'var(--font-heading)', fontSize: '1.3rem' }}>Enroll Athlete & Assign Package</h4>
+                  <h4 style={{ fontFamily: 'var(--font-heading)', fontSize: '1.3rem' }}>Enroll Athlete & Assign Center</h4>
                 </div>
 
                 <div className="minimal-form-grid">
@@ -703,6 +809,18 @@ export default function AdminDashboard({ onNavigateToWebsite }) {
                       placeholder="+91 98260 99887"
                       required
                     />
+                  </div>
+                  <div className="minimal-form-group">
+                    <label className="minimal-form-label">Primary Gym Center *</label>
+                    <select
+                      className="minimal-select"
+                      value={newBranch}
+                      onChange={(e) => setNewBranch(e.target.value)}
+                    >
+                      <option value="sapna_sangeeta">📍 Sapna Sangeeta Center</option>
+                      <option value="manik_bagh">📍 Manik Bagh Center</option>
+                      <option value="combined">🌐 All-Access (Both Centers)</option>
+                    </select>
                   </div>
                   <div className="minimal-form-group">
                     <label className="minimal-form-label">Age & Gender</label>
@@ -748,16 +866,6 @@ export default function AdminDashboard({ onNavigateToWebsite }) {
                       <option value="Coach Pooja (Functional Lead)">Coach Pooja (Functional Lead)</option>
                       <option value="Coach Rahul (Strength Specialist)">Coach Rahul (Strength Specialist)</option>
                     </select>
-                  </div>
-                  <div className="minimal-form-group">
-                    <label className="minimal-form-label">Emergency Phone</label>
-                    <input
-                      type="tel"
-                      className="minimal-input"
-                      value={newEmergencyPhone}
-                      onChange={(e) => setNewEmergencyPhone(e.target.value)}
-                      placeholder="+91 98260 00112"
-                    />
                   </div>
                   <div className="minimal-form-group">
                     <label className="minimal-form-label">Package Tier</label>
@@ -817,9 +925,10 @@ export default function AdminDashboard({ onNavigateToWebsite }) {
                   <tr>
                     <th>ID</th>
                     <th>Athlete & Contact</th>
+                    <th>Center</th>
                     <th>Package Plan</th>
                     <th>Package End Details</th>
-                    <th>Assigned Coach</th>
+                    <th>Coach</th>
                     <th style={{ textAlign: 'right' }}>Actions</th>
                   </tr>
                 </thead>
@@ -840,6 +949,15 @@ export default function AdminDashboard({ onNavigateToWebsite }) {
                               </div>
                             </div>
                           </div>
+                        </td>
+                        <td>
+                          <span className="branch-tag-pill">
+                            {m.branch === 'manik_bagh'
+                              ? '📍 Manik Bagh'
+                              : m.branch === 'combined'
+                              ? '🌐 All-Access'
+                              : '📍 Sapna Sangeeta'}
+                          </span>
                         </td>
                         <td>
                           <span className="tag-outline">{m.plan}</span>
@@ -895,20 +1013,23 @@ export default function AdminDashboard({ onNavigateToWebsite }) {
       )}
 
       {/* =========================================================================
-          TAB 3: OPERATING EXPENSES LEDGER
+          TAB 3: OPERATING EXPENSES LEDGER WITH BRANCH FILTERING
           ========================================================================= */}
       {activeTab === 'expenses' && (
         <div className="minimal-section">
           <div className="minimal-card">
             <div className="minimal-card-header">
               <div>
-                <span className="minimal-caption">OUTFLOW LEDGER</span>
+                <span className="minimal-caption">
+                  {selectedBranch === 'combined'
+                    ? 'COMBINED OUTFLOW LEDGER'
+                    : selectedBranch === 'sapna_sangeeta'
+                    ? 'SAPNA SANGEETA EXPENSES'
+                    : 'MANIK BAGH EXPENSES'}
+                </span>
                 <h3 style={{ fontFamily: 'var(--font-heading)', fontSize: '1.4rem' }}>
                   Facility Operating Expenses
                 </h3>
-                <p style={{ fontSize: '0.85rem', color: 'var(--muted)', marginTop: '0.2rem' }}>
-                  Track trainer payroll, commercial rent, barbell maintenance, supplement inventory, and utility costs.
-                </p>
               </div>
 
               <button
@@ -929,6 +1050,19 @@ export default function AdminDashboard({ onNavigateToWebsite }) {
 
                 <div className="minimal-form-grid">
                   <div className="minimal-form-group">
+                    <label className="minimal-form-label">Gym Center *</label>
+                    <select
+                      className="minimal-select"
+                      value={expBranch}
+                      onChange={(e) => setExpBranch(e.target.value)}
+                    >
+                      <option value="sapna_sangeeta">📍 Sapna Sangeeta Center</option>
+                      <option value="manik_bagh">📍 Manik Bagh Center</option>
+                      <option value="combined">🌐 Shared / Both Centers</option>
+                    </select>
+                  </div>
+
+                  <div className="minimal-form-group">
                     <label className="minimal-form-label">Expense Category</label>
                     <select
                       className="minimal-select"
@@ -938,11 +1072,10 @@ export default function AdminDashboard({ onNavigateToWebsite }) {
                       <option value="Trainer & Coach Payroll">Trainer & Coach Payroll</option>
                       <option value="Facility Rent & Lease">Facility Rent & Lease</option>
                       <option value="Equipment Maintenance">Equipment Maintenance</option>
-                      <option value="Commercial Utilities & AC">Commercial Utilities & AC</option>
+                      <option value="Commercial Utilities & Power">Commercial Utilities & Power</option>
                       <option value="Nutrition Inventory Restock">Nutrition Inventory Restock</option>
                       <option value="Sanitization & Facility Upkeep">Sanitization & Facility Upkeep</option>
                       <option value="Software & Marketing">Software & Marketing</option>
-                      <option value="General Administration">General Administration</option>
                     </select>
                   </div>
 
@@ -953,7 +1086,7 @@ export default function AdminDashboard({ onNavigateToWebsite }) {
                       className="minimal-input"
                       value={expName}
                       onChange={(e) => setExpName(e.target.value)}
-                      placeholder="e.g. SkiErg Drive Cord & Cable Replacement"
+                      placeholder="e.g. SkiErg Drive Cord Replacement"
                       required
                     />
                   </div>
@@ -965,35 +1098,10 @@ export default function AdminDashboard({ onNavigateToWebsite }) {
                       className="minimal-input"
                       value={expAmount}
                       onChange={(e) => setExpAmount(e.target.value)}
-                      placeholder="e.g. 12500"
+                      placeholder="e.g. 7500"
                       required
                     />
                   </div>
-
-                  <div className="minimal-form-group">
-                    <label className="minimal-form-label">Expense Type</label>
-                    <select
-                      className="minimal-select"
-                      value={expType}
-                      onChange={(e) => setExpType(e.target.value)}
-                    >
-                      <option value="maintenance">Maintenance & Repairs</option>
-                      <option value="recurring">Monthly Recurring</option>
-                      <option value="inventory">Inventory Stock</option>
-                      <option value="one-time">One-time Capital</option>
-                    </select>
-                  </div>
-                </div>
-
-                <div className="minimal-form-group" style={{ marginTop: '0.75rem' }}>
-                  <label className="minimal-form-label">Vendor / Purpose Notes</label>
-                  <input
-                    type="text"
-                    className="minimal-input"
-                    value={expNotes}
-                    onChange={(e) => setExpNotes(e.target.value)}
-                    placeholder="e.g. Sourced from Concept2 authorized partner"
-                  />
                 </div>
 
                 <div style={{ display: 'flex', gap: '0.5rem', marginTop: '1rem' }}>
@@ -1016,26 +1124,30 @@ export default function AdminDashboard({ onNavigateToWebsite }) {
               <table className="minimal-table">
                 <thead>
                   <tr>
+                    <th>Center</th>
                     <th>Category</th>
-                    <th>Description & Notes</th>
-                    <th>Type</th>
+                    <th>Description</th>
                     <th>Month</th>
                     <th>Amount (₹)</th>
                     <th style={{ textAlign: 'right' }}>Action</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {expenses.map((exp) => (
+                  {branchExpenses.map((exp) => (
                     <tr key={exp.id}>
                       <td>
-                        <span className="category-pill">{exp.category}</span>
+                        <span className="branch-tag-pill">
+                          {exp.branch === 'manik_bagh'
+                            ? '📍 Manik Bagh'
+                            : exp.branch === 'combined'
+                            ? '🌐 Shared'
+                            : '📍 Sapna Sangeeta'}
+                        </span>
                       </td>
+                      <td><span className="category-pill">{exp.category}</span></td>
                       <td>
                         <div style={{ fontWeight: 700, color: 'var(--ink)' }}>{exp.name}</div>
                         <div style={{ fontSize: '0.78rem', color: 'var(--muted)' }}>{exp.notes || '—'}</div>
-                      </td>
-                      <td>
-                        <span className="type-pill">{exp.type.toUpperCase()}</span>
                       </td>
                       <td>{exp.date || 'Oct 2026'}</td>
                       <td>
@@ -1072,7 +1184,7 @@ export default function AdminDashboard({ onNavigateToWebsite }) {
               <div>
                 <span className="minimal-caption">REAL-TIME ACCESS</span>
                 <h3 style={{ fontFamily: 'var(--font-heading)', fontSize: '1.4rem' }}>
-                  Floor Check-In Stream
+                  Floor Check-In Stream ({selectedBranch === 'combined' ? 'Both Centers' : selectedBranch === 'sapna_sangeeta' ? 'Sapna Sangeeta' : 'Manik Bagh'})
                 </h3>
               </div>
 
@@ -1082,7 +1194,7 @@ export default function AdminDashboard({ onNavigateToWebsite }) {
                   value={manualMemberId}
                   onChange={(e) => setManualMemberId(e.target.value)}
                 >
-                  {members.map((m) => (
+                  {branchMembers.map((m) => (
                     <option key={m.id} value={m.id}>
                       {m.name} ({m.id})
                     </option>
@@ -1099,15 +1211,17 @@ export default function AdminDashboard({ onNavigateToWebsite }) {
                 <thead>
                   <tr>
                     <th>Timestamp</th>
+                    <th>Center</th>
                     <th>Member Name</th>
                     <th>Plan Tier</th>
                     <th>Verification</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {attendance.map((entry) => (
+                  {branchAttendance.map((entry) => (
                     <tr key={entry.id}>
                       <td style={{ color: 'var(--muted)', fontSize: '0.85rem' }}>{entry.time}</td>
+                      <td><span className="branch-tag-pill">{entry.branch || 'Sapna Sangeeta'}</span></td>
                       <td><strong>{entry.memberName}</strong></td>
                       <td><span className="tag-outline">{entry.plan}</span></td>
                       <td style={{ color: 'var(--plate-green)', fontWeight: 700 }}>✓ Biometric Verified</td>
@@ -1130,16 +1244,13 @@ export default function AdminDashboard({ onNavigateToWebsite }) {
               <div>
                 <span className="minimal-caption">ASSET MONITORING</span>
                 <h3 style={{ fontFamily: 'var(--font-heading)', fontSize: '1.4rem' }}>
-                  Gym Equipment Condition
+                  Gym Equipment Condition ({selectedBranch === 'combined' ? 'Both Centers' : selectedBranch === 'sapna_sangeeta' ? 'Sapna Sangeeta' : 'Manik Bagh'})
                 </h3>
-                <p style={{ fontSize: '0.85rem', color: 'var(--muted)' }}>
-                  Click any item to cycle maintenance status between Optimal, Servicing, and Repair.
-                </p>
               </div>
             </div>
 
             <div className="minimal-equipment-grid" style={{ marginTop: '1rem' }}>
-              {equipment.map((item) => (
+              {branchEquipment.map((item) => (
                 <div
                   key={item.id}
                   className="minimal-equipment-item"
@@ -1147,7 +1258,12 @@ export default function AdminDashboard({ onNavigateToWebsite }) {
                   title="Click to toggle status"
                 >
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <h4 style={{ fontSize: '1rem', fontWeight: 700, color: 'var(--ink)' }}>{item.name}</h4>
+                    <div>
+                      <h4 style={{ fontSize: '1rem', fontWeight: 700, color: 'var(--ink)' }}>{item.name}</h4>
+                      <span style={{ fontSize: '0.75rem', color: 'var(--muted)' }}>
+                        {item.branch === 'manik_bagh' ? '📍 Manik Bagh Center' : '📍 Sapna Sangeeta Center'}
+                      </span>
+                    </div>
                     <span className="minimal-badge-outline" style={{ borderColor: item.accent, color: item.accent }}>
                       {item.status}
                     </span>
@@ -1163,12 +1279,11 @@ export default function AdminDashboard({ onNavigateToWebsite }) {
       )}
 
       {/* =========================================================================
-          MEMBER DOSSIER MODAL (MINIMAL & COMPREHENSIVE)
+          MEMBER DOSSIER MODAL
           ========================================================================= */}
       {selectedMember && (
         <div className="dossier-modal-backdrop" onClick={handleCloseDossier}>
           <div className="minimal-dossier-card" onClick={(e) => e.stopPropagation()}>
-            {/* Dossier Header */}
             <div className="minimal-dossier-header">
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem' }}>
                 <span className="minimal-avatar" style={{ width: '48px', height: '48px', fontSize: '1.4rem' }}>
@@ -1179,7 +1294,7 @@ export default function AdminDashboard({ onNavigateToWebsite }) {
                     {selectedMember.name}
                   </h3>
                   <div style={{ fontSize: '0.82rem', color: 'var(--muted)' }}>
-                    {selectedMember.id} • {selectedMember.gender || 'Athlete'} ({selectedMember.age || 26} yrs) • Blood: {selectedMember.bloodGroup || 'B+'}
+                    {selectedMember.id} • Center: <strong>{selectedMember.branchLabel || 'Sapna Sangeeta'}</strong> • Blood: {selectedMember.bloodGroup || 'B+'}
                   </div>
                 </div>
               </div>
@@ -1199,9 +1314,7 @@ export default function AdminDashboard({ onNavigateToWebsite }) {
               </div>
             </div>
 
-            {/* Dossier Body */}
             <div className="minimal-dossier-body">
-              {/* Personal Details Row */}
               <div className="minimal-dossier-section">
                 <span className="minimal-caption">PERSONAL & MEDICAL DOSSIER</span>
                 <div className="minimal-dossier-grid">
@@ -1233,7 +1346,6 @@ export default function AdminDashboard({ onNavigateToWebsite }) {
                 </div>
               </div>
 
-              {/* Package & Expiry Row */}
               <div className="minimal-dossier-section">
                 <span className="minimal-caption">ACTIVE PACKAGE & END DETAILS</span>
                 {(() => {
@@ -1247,7 +1359,7 @@ export default function AdminDashboard({ onNavigateToWebsite }) {
                             {selectedMember.plan}
                           </strong>
                           <div style={{ fontSize: '0.8rem', color: 'var(--muted)' }}>
-                            Duration: {selectedMember.package?.durationMonths || 3} Months • Locker: {selectedMember.package?.lockerAllocated || 'Standard'}
+                            Center: {selectedMember.branchLabel || 'Sapna Sangeeta'} • Locker: {selectedMember.package?.lockerAllocated || 'Standard'}
                           </div>
                         </div>
 
@@ -1259,7 +1371,6 @@ export default function AdminDashboard({ onNavigateToWebsite }) {
                         </div>
                       </div>
 
-                      {/* Quick Extend Buttons */}
                       <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.75rem', flexWrap: 'wrap' }}>
                         <button
                           type="button"
@@ -1288,7 +1399,6 @@ export default function AdminDashboard({ onNavigateToWebsite }) {
                 })()}
               </div>
 
-              {/* Notes Row */}
               <div className="minimal-dossier-section">
                 <span className="minimal-caption">COACH & DESK NOTES</span>
                 <textarea
