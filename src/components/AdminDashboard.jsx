@@ -13,7 +13,8 @@
  * - Member Dossier Modal (Track, WhatsApp, Renew)
  * - Attendance Feed & Equipment Health Monitor
  */
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useAuth } from '../context/AuthContext.jsx';
 import {
   BRANCHES,
   getActiveBranch,
@@ -34,7 +35,9 @@ import {
 } from '../lib/dashboardStorage.js';
 
 export default function AdminDashboard({ onNavigateToWebsite }) {
-  const [isAuthenticated, setIsAuthenticated] = useState(() => isAdminAuthenticated());
+  const { user: authUser, token: authToken, isAdmin: authIsAdmin, openAuthModal, logout: authLogout } = useAuth();
+  const [localAuth, setLocalAuth] = useState(() => isAdminAuthenticated());
+  const isAuthenticated = authIsAdmin || localAuth;
   const [pinInput, setPinInput] = useState('');
   const [pinError, setPinError] = useState('');
 
@@ -99,7 +102,7 @@ export default function AdminDashboard({ onNavigateToWebsite }) {
     e.preventDefault();
     if (pinInput === '1234') {
       setAdminAuthenticated(true);
-      setIsAuthenticated(true);
+      setLocalAuth(true);
       setPinError('');
     } else {
       setPinError('Incorrect PIN. (Default is 1234)');
@@ -108,7 +111,8 @@ export default function AdminDashboard({ onNavigateToWebsite }) {
 
   const handleLogout = () => {
     setAdminAuthenticated(false);
-    setIsAuthenticated(false);
+    setLocalAuth(false);
+    if (authLogout) authLogout();
     setPinInput('');
   };
 
@@ -204,6 +208,18 @@ export default function AdminDashboard({ onNavigateToWebsite }) {
     setExpenses(nextExpenses);
     saveStoredExpenses(nextExpenses);
 
+    // Backend sync if authenticated
+    if (authToken) {
+      fetch('/api/dashboard/expenses', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${authToken}`,
+        },
+        body: JSON.stringify(newExp),
+      }).catch(() => {});
+    }
+
     setIsAddingExpense(false);
     setExpName('');
     setExpAmount('');
@@ -286,6 +302,18 @@ export default function AdminDashboard({ onNavigateToWebsite }) {
     const nextMembers = [newMember, ...members];
     setMembers(nextMembers);
     saveStoredMembers(nextMembers);
+
+    // Backend sync if authenticated
+    if (authToken) {
+      fetch('/api/dashboard/members', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${authToken}`,
+        },
+        body: JSON.stringify(newMember),
+      }).catch(() => {});
+    }
 
     setIsAddingMember(false);
     setNewName('');
@@ -434,7 +462,15 @@ export default function AdminDashboard({ onNavigateToWebsite }) {
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
               <button type="submit" className="minimal-btn-primary" style={{ width: '100%' }}>
-                Unlock Console
+                Unlock Console with PIN
+              </button>
+              <button
+                type="button"
+                className="minimal-btn-ghost"
+                onClick={() => openAuthModal('login', 'admin')}
+                style={{ fontSize: '0.82rem', color: 'var(--plate-blue)', fontWeight: 700 }}
+              >
+                🔑 Sign In with Admin Account / Register
               </button>
               <button
                 type="button"
