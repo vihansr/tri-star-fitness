@@ -6,20 +6,31 @@
 const STORAGE_KEYS = {
   ADMIN_AUTH: 'tristar_admin_auth',
   ACTIVE_MEMBER_ID: 'tristar_active_member_id',
-  MEMBERS: 'tristar_members_list',
+  MEMBERS: 'tristar_members_list_v2', // v2 with comprehensive personal & package details
   WORKOUT_LOGS: 'tristar_workout_logs',
   MEMBER_PRS: 'tristar_member_prs',
   ATTENDANCE: 'tristar_attendance_logs',
   EQUIPMENT_STATUS: 'tristar_equipment_status',
 };
 
-// Realistic seed members for Tri-Star Fitness Indore
+// Realistic seed members with comprehensive personal, medical, and package end tracking
 const DEFAULT_MEMBERS = [
   {
     id: 'TS-001',
     name: 'Arjun Patel',
     phone: '+91 98260 11223',
     email: 'arjun.patel@gmail.com',
+    age: 27,
+    gender: 'Male',
+    bloodGroup: 'B+',
+    address: 'Vijay Nagar, Indore',
+    emergencyContact: {
+      name: 'Ramesh Patel (Father)',
+      phone: '+91 98260 99110',
+      relation: 'Father',
+    },
+    healthNotes: 'No cardiovascular or joint issues. Cleared for high-intensity barbell training.',
+    assignedCoach: 'Coach Mohit (Head Coach)',
     plan: 'Quarterly Pro',
     planAccent: 'var(--plate-red)',
     joinDate: '2026-08-15',
@@ -27,12 +38,36 @@ const DEFAULT_MEMBERS = [
     status: 'active',
     streakDays: 14,
     avatar: 'A',
+    package: {
+      tier: 'Quarterly Pro',
+      durationMonths: 3,
+      startDate: '2026-08-15',
+      endDate: '2026-11-15',
+      fee: 8500,
+      paymentStatus: 'Paid',
+      paymentMethod: 'UPI / PhonePe',
+      invoiceNumber: 'INV-IND-8401',
+      includesCoaching: true,
+      lockerAllocated: 'Locker #14',
+    },
+    adminNotes: 'Preparing for HYROX Open Mumbai 2027. Training split: Push-Pull-Legs + 2x Aerobic Engine.',
   },
   {
     id: 'TS-002',
     name: 'Sneha Joshi',
     phone: '+91 97550 44556',
     email: 'sneha.j@outlook.com',
+    age: 24,
+    gender: 'Female',
+    bloodGroup: 'O+',
+    address: 'Old Palasia, Indore',
+    emergencyContact: {
+      name: 'Sunita Joshi (Mother)',
+      phone: '+91 97550 11229',
+      relation: 'Mother',
+    },
+    healthNotes: 'Past ankle sprain (rehabilitated in 2025). Prefers dynamic calf & ankle warm-ups.',
+    assignedCoach: 'Coach Pooja (Functional Lead)',
     plan: 'Annual Elite',
     planAccent: 'var(--plate-yellow)',
     joinDate: '2026-01-10',
@@ -40,38 +75,110 @@ const DEFAULT_MEMBERS = [
     status: 'active',
     streakDays: 28,
     avatar: 'S',
+    package: {
+      tier: 'Annual Elite',
+      durationMonths: 12,
+      startDate: '2026-01-10',
+      endDate: '2027-01-10',
+      fee: 28000,
+      paymentStatus: 'Paid',
+      paymentMethod: 'Credit Card (HDFC)',
+      invoiceNumber: 'INV-IND-7910',
+      includesCoaching: true,
+      lockerAllocated: 'Locker #03 (VIP)',
+    },
+    adminNotes: 'Elite annual membership. VIP locker access, free nutrition bar perks each month.',
   },
   {
     id: 'TS-003',
     name: 'Vikram Singh',
     phone: '+91 94250 88990',
     email: 'vikram.singh@yahoo.in',
+    age: 32,
+    gender: 'Male',
+    bloodGroup: 'A+',
+    address: 'Sapna Sangeeta Main Road, Indore',
+    emergencyContact: {
+      name: 'Anjali Singh (Spouse)',
+      phone: '+91 94250 33441',
+      relation: 'Spouse',
+    },
+    healthNotes: 'Mild lower lumbar stiffness when deadlifting over 160kg. Requires coach form checks.',
+    assignedCoach: 'Coach Rahul (Strength Specialist)',
     plan: 'Quarterly Pro',
     planAccent: 'var(--plate-red)',
-    joinDate: '2026-07-20',
-    expiryDate: '2026-10-28', // Expiring soon (<7 days)
+    joinDate: '2026-07-28',
+    expiryDate: '2026-10-28', // Expiring in < 5 days!
     status: 'expiring',
     streakDays: 9,
     avatar: 'V',
+    package: {
+      tier: 'Quarterly Pro',
+      durationMonths: 3,
+      startDate: '2026-07-28',
+      endDate: '2026-10-28',
+      fee: 8500,
+      paymentStatus: 'Paid',
+      paymentMethod: 'Cash',
+      invoiceNumber: 'INV-IND-8224',
+      includesCoaching: true,
+      lockerAllocated: 'Locker #22',
+    },
+    adminNotes: 'Package expiring this week. Sent renewal WhatsApp reminder with 10% loyalty discount.',
   },
   {
     id: 'TS-004',
     name: 'Priya Sharma',
     phone: '+91 98930 77112',
     email: 'priya.sharma@indore.co',
+    age: 29,
+    gender: 'Female',
+    bloodGroup: 'B-',
+    address: 'Bhawarkua, Indore',
+    emergencyContact: {
+      name: 'Kavita Sharma (Sister)',
+      phone: '+91 98930 44551',
+      relation: 'Sister',
+    },
+    healthNotes: 'Asthmatic, keeps inhaler in gym bag. Avoid excessive unmonitored cold-room HIIT.',
+    assignedCoach: 'Coach Mohit (Head Coach)',
     plan: 'Monthly Starter',
     planAccent: 'var(--plate-blue)',
     joinDate: '2026-09-12',
-    expiryDate: '2026-10-12', // Expired
+    expiryDate: '2026-10-12', // Expired 11 days ago
     status: 'expired',
     streakDays: 0,
     avatar: 'P',
+    package: {
+      tier: 'Monthly Starter',
+      durationMonths: 1,
+      startDate: '2026-09-12',
+      endDate: '2026-10-12',
+      fee: 3200,
+      paymentStatus: 'Paid',
+      paymentMethod: 'UPI / GPay',
+      invoiceNumber: 'INV-IND-8610',
+      includesCoaching: false,
+      lockerAllocated: 'General Day Locker',
+    },
+    adminNotes: 'Membership lapsed. Called on Oct 16—traveling out of town, will renew upon return.',
   },
   {
     id: 'TS-005',
     name: 'Rohit Malviya',
     phone: '+91 91110 33221',
     email: 'rohit.m@gmail.com',
+    age: 35,
+    gender: 'Male',
+    bloodGroup: 'O-',
+    address: 'Geeta Bhawan, Indore',
+    emergencyContact: {
+      name: 'Deepak Malviya (Brother)',
+      phone: '+91 91110 88776',
+      relation: 'Brother',
+    },
+    healthNotes: 'None. Former state powerlifter. Working on 200kg deadlift milestone.',
+    assignedCoach: 'Coach Rahul (Strength Specialist)',
     plan: 'Annual Elite',
     planAccent: 'var(--plate-yellow)',
     joinDate: '2026-03-01',
@@ -79,6 +186,19 @@ const DEFAULT_MEMBERS = [
     status: 'active',
     streakDays: 41,
     avatar: 'R',
+    package: {
+      tier: 'Annual Elite',
+      durationMonths: 12,
+      startDate: '2026-03-01',
+      endDate: '2027-03-01',
+      fee: 28000,
+      paymentStatus: 'Paid',
+      paymentMethod: 'Bank Transfer (NEFT)',
+      invoiceNumber: 'INV-IND-7602',
+      includesCoaching: true,
+      lockerAllocated: 'Locker #07',
+    },
+    adminNotes: 'Club veteran and top streak holder (41 days consecutive). Eligible for free gym apparel kit.',
   },
 ];
 
@@ -130,6 +250,56 @@ const DEFAULT_EQUIPMENT = [
   { id: 'eq-5', name: 'Cable Crossover Stack', status: 'Cable Re-tensioned', accent: 'var(--plate-blue)' },
 ];
 
+/**
+ * Calculates days remaining, status tier, and human-readable label for any package end date.
+ */
+export function getPackageExpiryMeta(endDateStr) {
+  if (!endDateStr) {
+    return { daysLeft: 0, status: 'unknown', label: 'No end date', badgeColor: 'var(--plate-grey)' };
+  }
+
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  const end = new Date(endDateStr);
+  end.setHours(0, 0, 0, 0);
+
+  const diffTime = end.getTime() - today.getTime();
+  const daysLeft = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+  if (daysLeft < 0) {
+    const expiredDays = Math.abs(daysLeft);
+    return {
+      daysLeft,
+      status: 'expired',
+      label: `Expired ${expiredDays} day${expiredDays === 1 ? '' : 's'} ago`,
+      badgeColor: 'var(--plate-red)',
+      isExpiringSoon: false,
+      isExpired: true,
+    };
+  }
+
+  if (daysLeft <= 7) {
+    return {
+      daysLeft,
+      status: 'expiring',
+      label: daysLeft === 0 ? 'Expires today!' : `Ends in ${daysLeft} day${daysLeft === 1 ? '' : 's'}`,
+      badgeColor: 'var(--plate-yellow)',
+      isExpiringSoon: true,
+      isExpired: false,
+    };
+  }
+
+  return {
+    daysLeft,
+    status: 'active',
+    label: `${daysLeft} days remaining`,
+    badgeColor: 'var(--plate-green)',
+    isExpiringSoon: false,
+    isExpired: false,
+  };
+}
+
 export function getStoredMembers() {
   try {
     const raw = localStorage.getItem(STORAGE_KEYS.MEMBERS);
@@ -137,7 +307,27 @@ export function getStoredMembers() {
       localStorage.setItem(STORAGE_KEYS.MEMBERS, JSON.stringify(DEFAULT_MEMBERS));
       return DEFAULT_MEMBERS;
     }
-    return JSON.parse(raw);
+    const parsed = JSON.parse(raw);
+    // Ensure backwards compatibility if any old member misses new package metadata
+    return parsed.map((m) => {
+      const expiry = m.expiryDate || (m.package && m.package.endDate) || '2026-12-31';
+      const meta = getPackageExpiryMeta(expiry);
+      return {
+        ...m,
+        expiryDate: expiry,
+        status: meta.status,
+        package: m.package || {
+          tier: m.plan || 'Quarterly Pro',
+          durationMonths: 3,
+          startDate: m.joinDate || '2026-08-01',
+          endDate: expiry,
+          fee: 8500,
+          paymentStatus: 'Paid',
+          paymentMethod: 'UPI',
+          invoiceNumber: `INV-${m.id}`,
+        },
+      };
+    });
   } catch {
     return DEFAULT_MEMBERS;
   }
